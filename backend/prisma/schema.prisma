@@ -1,0 +1,162 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  SUPERVISOR
+  COMPANY
+  ADMIN
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum PlacementStatus {
+  ACTIVE
+  COMPLETED
+}
+
+enum ReportType {
+  WEEKLY
+  FINAL
+}
+
+enum ReportStatus {
+  SUBMITTED
+  APPROVED
+  RETURNED
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         Role
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  student         Student?
+  company         Company?
+  supervisedUnits Placement[] @relation("SupervisorPlacements")
+
+  @@map("users")
+}
+
+model Student {
+  id         Int     @id @default(autoincrement())
+  userId     Int     @unique @map("user_id")
+  universityId String @unique @map("university_id")
+  university String
+  major      String
+  gpa        Decimal? @db.Decimal(3, 2)
+  skills     String[] @default([])
+  cvUrl      String?  @map("cv_url")
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applications Application[]
+  placements   Placement[]
+
+  @@map("students")
+}
+
+model Company {
+  id       Int     @id @default(autoincrement())
+  userId   Int     @unique @map("user_id")
+  name     String
+  crNumber String  @unique @map("cr_number")
+  city     String
+  sector   String
+  verified Boolean @default(false)
+
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  opportunities Opportunity[]
+  placements    Placement[]
+
+  @@map("companies")
+}
+
+model Opportunity {
+  id          Int      @id @default(autoincrement())
+  companyId   Int      @map("company_id")
+  title       String
+  description String
+  major       String
+  city        String
+  seats       Int
+  durationWeeks Int    @map("duration_weeks")
+  deadline    DateTime
+  isOpen      Boolean  @default(true) @map("is_open")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  applications Application[]
+
+  @@index([major, city])
+  @@map("opportunities")
+}
+
+model Application {
+  id            Int               @id @default(autoincrement())
+  studentId     Int               @map("student_id")
+  opportunityId Int               @map("opportunity_id")
+  coverLetter   String?           @map("cover_letter")
+  status        ApplicationStatus @default(PENDING)
+  createdAt     DateTime          @default(now()) @map("created_at")
+  decidedAt     DateTime?         @map("decided_at")
+
+  student     Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  placement   Placement?
+
+  @@unique([studentId, opportunityId])
+  @@map("applications")
+}
+
+model Placement {
+  id            Int             @id @default(autoincrement())
+  applicationId Int             @unique @map("application_id")
+  studentId     Int             @map("student_id")
+  companyId     Int             @map("company_id")
+  supervisorId  Int?            @map("supervisor_id")
+  startDate     DateTime        @map("start_date")
+  endDate       DateTime        @map("end_date")
+  status        PlacementStatus @default(ACTIVE)
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  student     Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  company     Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  supervisor  User?       @relation("SupervisorPlacements", fields: [supervisorId], references: [id])
+  reports     Report[]
+
+  @@map("placements")
+}
+
+model Report {
+  id          Int          @id @default(autoincrement())
+  placementId Int          @map("placement_id")
+  type        ReportType
+  weekNo      Int?         @map("week_no")
+  tasks       String
+  hours       Int
+  skills      String
+  challenges  String?
+  status      ReportStatus @default(SUBMITTED)
+  feedback    String?
+  submittedAt DateTime     @default(now()) @map("submitted_at")
+  reviewedAt  DateTime?    @map("reviewed_at")
+
+  placement Placement @relation(fields: [placementId], references: [id], onDelete: Cascade)
+
+  @@unique([placementId, type, weekNo])
+  @@map("reports")
+}
