@@ -18,6 +18,8 @@ services:
       DATABASE_URL: postgresql://coop:coop@db:5432/coopconnect
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
       CORS_ORIGIN: http://localhost:3000
+      # Optional: enables AI-personalized training plans (engine plans work without it).
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     ports:
       - "4000:4000"
     depends_on:

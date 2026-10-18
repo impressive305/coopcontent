@@ -52,7 +52,7 @@ export type User = {
   name: string;
   email: string;
   role: Role;
-  student?: { major: string; university: string; universityId: string } | null;
+  student?: { major: string; university: string; universityId: string; gpa: string | null; skills: string[] } | null;
   company?: { id: number; name: string; verified: boolean } | null;
 };
 
@@ -104,4 +104,63 @@ export type Report = {
   status: "SUBMITTED" | "APPROVED" | "RETURNED";
   feedback?: string | null;
   submittedAt: string;
+};
+
+export type PlanTask = { id: string; title: string; done: boolean };
+export type PlanWeek = {
+  weekNo: number;
+  phase: string;
+  theme: string;
+  objectives: string[];
+  tasks: PlanTask[];
+  deliverable: string;
+  skills: string[];
+};
+export type PlanContent = {
+  title: string;
+  summary: string;
+  goals: string[];
+  skills: { name: string; category: "technical" | "professional" }[];
+  phases: { key: string; name: string; startWeek: number; endWeek: number }[];
+  weeks: PlanWeek[];
+  milestones: { weekNo: number; title: string }[];
+  evaluation: { criterion: string; weight: number }[];
+};
+export type TrainingPlan = {
+  id: number;
+  majorKey: string;
+  trackKey: string;
+  durationWeeks: number;
+  hoursPerWeek: number;
+  startDate: string | null;
+  source: "ENGINE" | "AI";
+  model: string | null;
+  content: PlanContent;
+  isActive: boolean;
+  createdAt: string;
+  notice?: string | null;
+};
+export type PlanSummary = Pick<TrainingPlan, "id" | "majorKey" | "trackKey" | "durationWeeks" | "source" | "isActive" | "createdAt">;
+export type PlanCatalog = {
+  aiAvailable: boolean;
+  suggestedMajor: string | null;
+  placement: { company: string; opportunity: string; startDate: string; durationWeeks: number } | null;
+  majors: { key: string; name: string; nameEn: string; tracks: { key: string; name: string; tools: string[]; project: string }[] }[];
+};
+
+// Plan progress helpers shared by the overview and plan pages.
+export const planProgress = (plan: PlanContent) => {
+  const tasks = plan.weeks.flatMap((w) => w.tasks);
+  const done = tasks.filter((t) => t.done).length;
+  return { done, total: tasks.length, percent: tasks.length ? Math.round((done / tasks.length) * 100) : 0 };
+};
+
+// The calendar week if the plan has a start date, else the first week with open tasks.
+export const currentWeekNo = (plan: TrainingPlan) => {
+  const weeks = plan.content.weeks;
+  if (plan.startDate) {
+    const elapsed = Math.floor((Date.now() - Date.parse(plan.startDate)) / (7 * 864e5)) + 1;
+    return Math.min(Math.max(elapsed, 1), weeks.length);
+  }
+  return weeks.find((w) => w.tasks.some((t) => !t.done))?.weekNo ?? weeks.length;
 };

@@ -84,11 +84,14 @@ export const formatDate = (d: string) => new Date(d).toLocaleDateString("ar-SA-u
 export function useAction() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
   const run = async (fn: () => Promise<unknown>) => {
     setBusy(true);
     setError(null);
+    setDone(false);
     try {
       await fn();
+      setDone(true);
       return true;
     } catch (e) {
       setError((e as Error).message);
@@ -97,7 +100,7 @@ export function useAction() {
       setBusy(false);
     }
   };
-  return { busy, error, run };
+  return { busy, error, done, run };
 }
 
 export const formValues = (form: HTMLFormElement) => Object.fromEntries(new FormData(form)) as Record<string, string>;

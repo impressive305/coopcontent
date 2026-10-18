@@ -8,7 +8,7 @@ export const api = () => request(app);
 
 export const resetDb = () =>
   prisma.$executeRawUnsafe(
-    'TRUNCATE reports, placements, applications, opportunities, companies, students, users RESTART IDENTITY CASCADE',
+    'TRUNCATE training_plans, reports, placements, applications, opportunities, companies, students, users RESTART IDENTITY CASCADE',
   );
 
 export const createStaff = async (role, email) => {
