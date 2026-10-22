@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
+import { companyProfileSchema } from './companies.js';
 
 const router = Router();
 router.use(authenticate, requireRole('ADMIN'));
@@ -40,6 +41,17 @@ router.get('/companies', async (req, res) => {
     orderBy: { id: 'desc' },
   });
   res.json(companies);
+});
+
+// Directory-only company: no account, verified by the admin who adds it.
+router.post('/companies', validate(companyProfileSchema), async (req, res) => {
+  const company = await prisma.company.create({ data: { ...req.body, verified: true } });
+  res.status(201).json(company);
+});
+
+router.patch('/companies/:id', validate(companyProfileSchema.partial()), async (req, res) => {
+  const company = await prisma.company.update({ where: { id: Number(req.params.id) }, data: req.body });
+  res.json(company);
 });
 
 router.patch('/companies/:id/verify', async (req, res) => {

@@ -52,7 +52,7 @@ export type User = {
   name: string;
   email: string;
   role: Role;
-  student?: { major: string; university: string; universityId: string; gpa: string | null; skills: string[] } | null;
+  student?: { major: string; university: string; universityId: string; gpa: string | null; gpaScale: number | null; skills: string[] } | null;
   company?: { id: number; name: string; verified: boolean } | null;
 };
 
@@ -70,6 +70,28 @@ export type Opportunity = {
   _count?: { applications: number };
 };
 
+export type CompanyProfile = {
+  id: number;
+  name: string;
+  city: string;
+  sector: string;
+  verified: boolean;
+  description: string | null;
+  website: string | null;
+  contactEmail: string | null;
+  phone: string | null;
+  address: string | null;
+  majors: string[];
+  coopOpen: boolean;
+};
+
+// A company as students see it in the directory; `email` is where they apply.
+export type DirectoryCompany = Omit<CompanyProfile, "verified"> & {
+  email: string | null;
+  _count?: { opportunities: number };
+  opportunities?: Opportunity[];
+};
+
 export type ApplicationStatus = "PENDING" | "ACCEPTED" | "REJECTED" | "WITHDRAWN";
 
 export type Application = {
@@ -78,7 +100,7 @@ export type Application = {
   coverLetter?: string | null;
   createdAt: string;
   opportunity?: Opportunity;
-  student?: { major: string; university: string; gpa?: string | null; skills: string[]; user: { name: string; email: string } };
+  student?: { major: string; university: string; gpa?: string | null; gpaScale?: number | null; skills: string[]; user: { name: string; email: string } };
 };
 
 export type Placement = {
@@ -106,7 +128,9 @@ export type Report = {
   submittedAt: string;
 };
 
-export type PlanTask = { id: string; title: string; done: boolean };
+export type TaskKind = "field" | "learning";
+// Plans created before task kinds existed have no kind; treat those tasks as field work.
+export type PlanTask = { id: string; title: string; done: boolean; kind?: TaskKind };
 export type PlanWeek = {
   weekNo: number;
   phase: string;
@@ -128,12 +152,12 @@ export type PlanContent = {
 };
 export type TrainingPlan = {
   id: number;
-  majorKey: string;
-  trackKey: string;
+  majorKey: string | null;
+  trackKey: string | null;
   durationWeeks: number;
   hoursPerWeek: number;
   startDate: string | null;
-  source: "ENGINE" | "AI";
+  source: "ENGINE" | "AI" | "MANUAL";
   model: string | null;
   content: PlanContent;
   isActive: boolean;
@@ -163,4 +187,12 @@ export const currentWeekNo = (plan: TrainingPlan) => {
     return Math.min(Math.max(elapsed, 1), weeks.length);
   }
   return weeks.find((w) => w.tasks.some((t) => !t.done))?.weekNo ?? weeks.length;
+};
+
+export const TASK_KINDS: Record<TaskKind, string> = { field: "تدريب ميداني", learning: "تعلّم ذاتي" };
+
+export const tasksByKind = (plan: PlanContent) => {
+  const counts: Record<TaskKind, number> = { field: 0, learning: 0 };
+  for (const t of plan.weeks.flatMap((w) => w.tasks)) counts[t.kind ?? "field"] += 1;
+  return counts;
 };

@@ -34,6 +34,7 @@ enum ReportType {
 enum PlanSource {
   ENGINE
   AI
+  MANUAL
 }
 
 enum ReportStatus {
@@ -64,6 +65,8 @@ model Student {
   university   String
   major        String
   gpa          Decimal? @db.Decimal(3, 2)
+  // 4 or 5: Saudi universities grade on either scale.
+  gpaScale     Int?     @map("gpa_scale")
   skills       String[] @default([])
   cvUrl        String?  @map("cv_url")
 
@@ -75,16 +78,26 @@ model Student {
   @@map("students")
 }
 
+// A training organization. Companies that register have a user account; the
+// admin can also add directory-only companies (no account, no CR number).
 model Company {
-  id       Int     @id @default(autoincrement())
-  userId   Int     @unique @map("user_id")
-  name     String
-  crNumber String  @unique @map("cr_number")
-  city     String
-  sector   String
-  verified Boolean @default(false)
+  id           Int      @id @default(autoincrement())
+  userId       Int?     @unique @map("user_id")
+  name         String
+  crNumber     String?  @unique @map("cr_number")
+  city         String
+  sector       String
+  verified     Boolean  @default(false)
+  // Directory profile shown to students, who apply directly to the company.
+  description  String?
+  website      String?
+  contactEmail String?  @map("contact_email")
+  phone        String?
+  address      String?
+  majors       String[] @default([])
+  coopOpen     Boolean  @default(true) @map("coop_open")
 
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
   opportunities Opportunity[]
   placements    Placement[]
 
@@ -172,8 +185,9 @@ model TrainingPlan {
   id            Int        @id @default(autoincrement())
   studentId     Int        @map("student_id")
   placementId   Int?       @map("placement_id")
-  majorKey      String     @map("major_key")
-  trackKey      String     @map("track_key")
+  // Null for plans the student builds by hand.
+  majorKey      String?    @map("major_key")
+  trackKey      String?    @map("track_key")
   durationWeeks Int        @map("duration_weeks")
   hoursPerWeek  Int        @map("hours_per_week")
   startDate     DateTime?  @map("start_date")

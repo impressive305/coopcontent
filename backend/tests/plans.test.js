@@ -87,6 +87,39 @@ describe('plans API', () => {
     }
   }, 30000);
 
+  test('builds a plan by hand and edits any plan week by week', async () => {
+    const manual = await api().post('/api/plans/manual').set(auth(token)).send({ title: 'خطتي', durationWeeks: 3 });
+    expect(manual.status).toBe(201);
+    expect(manual.body.source).toBe('MANUAL');
+    expect(manual.body.content.weeks.map((w) => w.theme)).toEqual(['الأسبوع 1', 'الأسبوع 2', 'الأسبوع 3']);
+
+    const generated = (await api().post('/api/plans').set(auth(token)).send(planRequest)).body;
+    expect(generated.content.weeks.flatMap((w) => w.tasks).every((t) => ['field', 'learning'].includes(t.kind))).toBe(true);
+
+    // Rename week 1, drop week 2, append a new week with a milestone.
+    const [w1, , ...rest] = generated.content.weeks;
+    const weeks = [
+      { ...w1, theme: 'أسبوع معدّل', tasks: [{ id: 'mine-1', title: 'دورة SQL', done: false, kind: 'learning' }] },
+      ...rest,
+      { phase: 'إضافي', theme: 'أسبوع جديد', objectives: [], tasks: [], deliverable: '', skills: [], milestone: 'عرض نهائي' },
+    ];
+    const edited = await api().put(`/api/plans/${generated.id}`).set(auth(token)).send({ title: 'جديد', summary: '', goals: ['هدف'], weeks });
+    expect(edited.status).toBe(200);
+    expect(edited.body.durationWeeks).toBe(12);
+    expect(edited.body.content.weeks[0]).toMatchObject({ weekNo: 1, theme: 'أسبوع معدّل' });
+    expect(edited.body.content.weeks.at(-1)).toMatchObject({ weekNo: 12, theme: 'أسبوع جديد' });
+    expect(edited.body.content.milestones).toEqual([{ weekNo: 12, title: 'عرض نهائي' }]);
+    expect(edited.body.content.phases.at(-1)).toMatchObject({ name: 'إضافي', startWeek: 12, endWeek: 12 });
+    expect(edited.body.content.weeks[0].milestone).toBeUndefined();
+
+    const toggled = await api().patch(`/api/plans/${generated.id}/tasks/mine-1`).set(auth(token)).send({ done: true });
+    expect(toggled.body.content.weeks[0].tasks[0].done).toBe(true);
+
+    const dupes = [{ ...weeks[0] }, { ...weeks[0], theme: 'x' }];
+    expect((await api().put(`/api/plans/${generated.id}`).set(auth(token)).send({ title: 'x', summary: '', goals: [], weeks: dupes })).status).toBe(400);
+    expect((await api().put(`/api/plans/${generated.id}`).set(auth(token)).send({ title: 'x', summary: '', goals: [], weeks: [] })).status).toBe(400);
+  });
+
   test('updates the student profile', async () => {
     const res = await api().patch('/api/students/me').set(auth(token)).send({ major: 'Software Engineering', skills: ['Node.js'], gpa: 4.5 });
     expect(res.body.student).toMatchObject({ major: 'Software Engineering', skills: ['Node.js'] });

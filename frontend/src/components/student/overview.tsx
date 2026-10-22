@@ -8,7 +8,8 @@ import {
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useData } from "@/lib/use-data";
-import { Alert, Card, StatusBadge, cx, formatDate, useAction } from "../ui";
+import { TaskItem } from "./plan";
+import { Alert, Card, StatusBadge, formatDate, useAction } from "../ui";
 
 function Stat({ icon: Icon, label, value, hint }: { icon: typeof Briefcase; label: string; value: string; hint?: string }) {
   return (
@@ -36,20 +37,14 @@ function ThisWeek({ plan, onChange }: { plan: TrainingPlan; onChange: (p: Traini
       title={`هذا الأسبوع: ${week.theme}`}
       actions={<Link href="/dashboard/plan" className="flex items-center gap-1 text-sm text-brand hover:underline">الخطة كاملة <ArrowLeft className="size-4" /></Link>}
     >
-      <p className="mb-4 text-xs text-gray-500">الأسبوع {week.weekNo} من {plan.durationWeeks} · {week.phase}</p>
-      <ul className="space-y-2">
-        {week.tasks.map((t) => (
-          <li key={t.id}>
-            <label className="flex cursor-pointer items-start gap-3 text-sm">
-              <input type="checkbox" checked={t.done} disabled={action.busy} onChange={(e) => toggle(t.id, e.target.checked)} className="mt-0.5 size-4 shrink-0 accent-teal-700" />
-              <span className={cx(t.done && "text-gray-400 line-through")}>{t.title}</span>
-            </label>
-          </li>
-        ))}
+      <p className="mb-4 text-xs text-gray-500">الأسبوع {week.weekNo} من {plan.durationWeeks}{week.phase && ` · ${week.phase}`}</p>
+      {week.tasks.length === 0 && <p className="text-sm text-gray-500">لا توجد مهام لهذا الأسبوع بعد.</p>}
+      <ul className="space-y-1">
+        {week.tasks.map((t) => <TaskItem key={t.id} task={t} busy={action.busy} onToggle={toggle} />)}
       </ul>
       <Alert>{action.error}</Alert>
-      <div className="mt-4 flex flex-wrap gap-4 border-t border-black/5 pt-4 text-sm dark:border-white/10">
-        <span><span className="text-gray-500">المخرَج: </span>{week.deliverable}</span>
+      <div className="mt-4 flex flex-wrap gap-4 border-t border-black/5 pt-4 text-sm empty:hidden dark:border-white/10">
+        {week.deliverable && <span><span className="text-gray-500">المخرَج: </span>{week.deliverable}</span>}
         {nextMilestone && (
           <span className="flex items-center gap-1.5 text-amber-700 dark:text-amber-300"><Flag className="size-4" />الأسبوع {nextMilestone.weekNo}: {nextMilestone.title}</span>
         )}
@@ -81,7 +76,7 @@ export function StudentOverview() {
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Stat icon={Briefcase} label="حالة التدريب" value={placement ? (placement.status === "ACTIVE" ? "قيد التدريب" : "مكتمل") : "لم يبدأ"} hint={placement?.company.name ?? `${pendingApps} طلبات قيد المراجعة`} />
-        <Stat icon={CalendarCheck} label="الأسبوع الحالي" value={plan ? `${currentWeekNo(plan)} / ${plan.durationWeeks}` : "—"} hint={plan ? plan.content.weeks[currentWeekNo(plan) - 1].phase : "أنشئ خطتك أولاً"} />
+        <Stat icon={CalendarCheck} label="الأسبوع الحالي" value={plan ? `${currentWeekNo(plan)} / ${plan.durationWeeks}` : "—"} hint={plan ? plan.content.weeks[currentWeekNo(plan) - 1].phase || undefined : "أنشئ خطتك أولاً"} />
         <Stat icon={ClipboardList} label="إنجاز الخطة" value={progress ? `${progress.percent}%` : "—"} hint={progress ? `${progress.done} من ${progress.total} مهمة` : undefined} />
         <Stat icon={FileText} label="التقارير المعتمدة" value={String(approved)} hint={returned ? `${returned} تقارير مُعادة للتعديل` : `${reports.data?.length ?? 0} تقارير مرفوعة`} />
       </div>
@@ -94,7 +89,7 @@ export function StudentOverview() {
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-gradient-to-l from-teal-700 to-teal-900 p-6 text-white">
           <div>
             <h3 className="mb-1 flex items-center gap-2 text-lg font-bold"><Bot className="size-5" />لا توجد لديك خطة تدريب بعد</h3>
-            <p className="text-sm text-teal-100">دع المساعد الذكي يبني لك خطة أسبوعية تناسب تخصصك ومسارك.</p>
+            <p className="text-sm text-teal-100">دع المساعد الذكي يبني لك خطة أسبوعية، أو ابنِ خطتك بنفسك أسبوعاً بأسبوع.</p>
           </div>
           <Link href="/dashboard/plan" className="rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-teal-900 hover:bg-teal-50">إنشاء الخطة</Link>
         </div>
@@ -111,7 +106,7 @@ export function StudentOverview() {
               <div className="flex justify-between gap-3"><dt className="text-gray-500">الحالة</dt><dd><StatusBadge status={placement.status} /></dd></div>
             </dl>
           ) : (
-            <p className="text-sm text-gray-500">لم تُقبل في فرصة بعد. <Link href="/dashboard/opportunities" className="text-brand underline">تصفّح الفرص المتاحة</Link></p>
+            <p className="text-sm text-gray-500">لم يُسجَّل لك تدريب بعد. <Link href="/dashboard/opportunities" className="text-brand underline">تصفّح جهات التدريب</Link> وتواصل معها مباشرة، أو قدّم على فرصها عبر المنصة.</p>
           )}
         </Card>
         <Card title="آخر الطلبات" actions={<Link href="/dashboard/applications" className="text-sm text-brand hover:underline">عرض الكل</Link>}>

@@ -10,6 +10,7 @@ import {
 import type { Role, User } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { cx } from "../ui";
+import { ThemeToggle } from "../theme-toggle";
 
 type NavItem = { href: string; label: string; icon: LucideIcon; badge?: string };
 
@@ -109,7 +110,8 @@ export function DashboardShell({ user, children }: { user: User; children: React
       <div className="lg:ps-64">
         <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-black/5 bg-white/85 px-4 py-3 backdrop-blur sm:px-6 dark:border-white/10 dark:bg-[#0f1115]/85">
           <button aria-label="فتح القائمة" onClick={() => setOpen(true)} className="rounded-lg p-1.5 hover:bg-black/5 lg:hidden dark:hover:bg-white/10"><Menu className="size-5" /></button>
-          <h1 className="text-lg font-bold">{current?.label ?? "لوحة التحكم"}</h1>
+          <h1 className="flex-1 text-lg font-bold">{current?.label ?? "لوحة التحكم"}</h1>
+          <ThemeToggle />
         </header>
         <main className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-6">{children}</main>
       </div>

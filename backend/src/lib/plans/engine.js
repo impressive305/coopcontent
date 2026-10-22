@@ -86,7 +86,12 @@ export const generateEnginePlan = ({ major, track, durationWeeks, hoursPerWeek, 
         phase: phase.name,
         theme,
         objectives: rotate(PHASE_OBJECTIVES[phase.key], i, 2).map((o) => fill(o, ctx)),
-        tasks: titles.map((title, t) => ({ id: `w${weekNo}-t${t + 1}`, title, done: false })),
+        tasks: titles.map((title, t) => ({
+          id: `w${weekNo}-t${t + 1}`,
+          title,
+          done: false,
+          kind: phase.key === 'learning' && title !== WEEKLY_REPORT_TASK ? 'learning' : 'field',
+        })),
         deliverable: isPhaseEnd ? phaseDeliverables[phase.key] : `التقرير الأسبوعي رقم ${weekNo}`,
         skills: [track.skills[(weekNo - 1) % track.skills.length], PROFESSIONAL_SKILLS[(weekNo - 1) % PROFESSIONAL_SKILLS.length]],
       });

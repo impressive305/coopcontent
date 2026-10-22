@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { api, type Application, type Opportunity, type Placement, type User } from "@/lib/api";
+import { api, type Application, type CompanyProfile, type Opportunity, type Placement, type User } from "@/lib/api";
+import { CompanyProfileForm } from "../company-profile-form";
 import { useData } from "@/lib/use-data";
 import { Alert, Button, Card, Empty, Field, StatusBadge, formValues, formatDate, useAction } from "../ui";
 
@@ -54,7 +55,7 @@ function Applicants({ opportunityId, onDecided }: { opportunityId: number; onDec
             <div>
               <p className="font-medium">{a.student?.user.name} <span className="text-gray-500" dir="ltr">({a.student?.user.email})</span></p>
               <p className="text-gray-500">
-                {a.student?.university} · {a.student?.major}{a.student?.gpa ? ` · المعدل ${a.student.gpa}` : ""}
+                {a.student?.university} · {a.student?.major}{a.student?.gpa ? ` · المعدل ${a.student.gpa}${a.student.gpaScale ? ` من ${a.student.gpaScale}` : ""}` : ""}
                 {a.student?.skills.length ? ` · ${a.student.skills.join("، ")}` : ""}
               </p>
             </div>
@@ -74,6 +75,17 @@ function Applicants({ opportunityId, onDecided }: { opportunityId: number; onDec
   );
 }
 
+function ProfileCard() {
+  const { data, error, reload } = useData<CompanyProfile>("/companies/me");
+  return (
+    <Card title="ملف الجهة كما يراه الطلاب">
+      <p className="mb-4 text-sm text-gray-500">يتواصل الطلاب معكم مباشرة عبر بريد التقديم وموقعكم الإلكتروني، لذا احرصوا على اكتمال هذه البيانات.</p>
+      <Alert>{error}</Alert>
+      {data && <CompanyProfileForm initial={data} submitLabel="حفظ الملف" onSubmit={(body) => api("/companies/me", { method: "PATCH", body }).then(reload)} />}
+    </Card>
+  );
+}
+
 export function CompanyDashboard({ user }: { user: User }) {
   const opportunities = useData<Opportunity[]>("/opportunities/mine");
   const placements = useData<Placement[]>("/placements");
@@ -82,9 +94,12 @@ export function CompanyDashboard({ user }: { user: User }) {
 
   if (!user.company?.verified) {
     return (
-      <Card title="الحساب قيد المراجعة">
-        <Alert tone="amber">تم استلام تسجيل {user.company?.name}. سيتمكن فريقكم من نشر الفرص بعد اعتماد مسؤول النظام للسجل التجاري.</Alert>
-      </Card>
+      <>
+        <Card title="الحساب قيد المراجعة">
+          <Alert tone="amber">تم استلام تسجيل {user.company?.name}. ستظهر الجهة للطلاب ويمكنكم نشر الفرص بعد اعتماد مسؤول النظام للسجل التجاري.</Alert>
+        </Card>
+        <ProfileCard />
+      </>
     );
   }
 
@@ -93,6 +108,7 @@ export function CompanyDashboard({ user }: { user: User }) {
 
   return (
     <>
+      <ProfileCard />
       <Card title="نشر فرصة تدريبية جديدة">
         <NewOpportunityForm onCreated={opportunities.reload} />
       </Card>

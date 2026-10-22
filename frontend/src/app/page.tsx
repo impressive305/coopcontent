@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { DashboardPreview } from "@/components/landing/preview";
 import { RoleTabs } from "@/components/landing/role-tabs";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { MAJORS } from "@/lib/majors";
 
 const navLinks = [
@@ -83,6 +84,7 @@ export default function Home() {
             {navLinks.map(([href, label]) => <a key={href} href={href} className="hover:text-brand">{label}</a>)}
           </nav>
           <div className="flex items-center gap-2 text-sm">
+            <ThemeToggle />
             <Link href="/login" className="rounded-lg px-3 py-2 font-medium hover:bg-black/5 dark:hover:bg-white/10">تسجيل الدخول</Link>
             <Link href="/register" className="rounded-lg bg-brand px-4 py-2 font-medium text-white hover:bg-brand-dark">ابدأ الآن</Link>
           </div>

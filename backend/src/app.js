@@ -10,6 +10,7 @@ import placementRoutes from './routes/placements.js';
 import reportRoutes from './routes/reports.js';
 import planRoutes from './routes/plans.js';
 import studentRoutes from './routes/students.js';
+import companyRoutes from './routes/companies.js';
 import { errorHandler } from './middleware/error.js';
 
 export const createApp = () => {
@@ -28,6 +29,7 @@ export const createApp = () => {
   app.use('/api/placements', placementRoutes);
   app.use('/api/plans', planRoutes);
   app.use('/api/students', studentRoutes);
+  app.use('/api/companies', companyRoutes);
   app.use('/api', reportRoutes);
 
   app.use((_req, res) => res.status(404).json({ error: 'Not found' }));

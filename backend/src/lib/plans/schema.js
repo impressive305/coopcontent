@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+// Field work done at the training organization vs. self-directed learning.
+export const TASK_KINDS = ['field', 'learning'];
+
 // The shape every plan has, whether the engine or the AI agent produced it.
 export const planContentSchema = z.object({
   title: z.string(),
@@ -20,7 +23,7 @@ export const planContentSchema = z.object({
     phase: z.string(),
     theme: z.string(),
     objectives: z.array(z.string()),
-    tasks: z.array(z.object({ id: z.string(), title: z.string(), done: z.boolean() })),
+    tasks: z.array(z.object({ id: z.string(), title: z.string(), done: z.boolean(), kind: z.enum(TASK_KINDS) })),
     deliverable: z.string(),
     skills: z.array(z.string()),
   })),
@@ -42,4 +45,40 @@ export const checkPlanConsistency = (plan, durationWeeks) => {
   const taskIds = plan.weeks.flatMap((w) => w.tasks.map((t) => t.id));
   if (new Set(taskIds).size !== taskIds.length) problems.push('duplicate task ids');
   return problems;
+};
+
+const text = (max) => z.string().trim().max(max);
+const list = (maxItems, maxLength = 300) => z.array(text(maxLength).min(1)).max(maxItems);
+
+// What the student may change when editing a plan. Weeks are numbered by
+// position; a week's milestone is folded into the plan's milestones on save.
+export const planEditSchema = z.object({
+  title: text(200).min(1),
+  summary: text(2000),
+  goals: list(20, 500),
+  weeks: z.array(z.object({
+    phase: text(100),
+    theme: text(200).min(1),
+    objectives: list(10),
+    tasks: z.array(z.object({
+      id: text(40).min(1),
+      title: text(500).min(1),
+      done: z.boolean(),
+      kind: z.enum(TASK_KINDS),
+    })).max(20),
+    deliverable: text(500),
+    skills: list(10, 100),
+    milestone: text(200).optional(),
+  })).min(1).max(52),
+});
+
+// Groups consecutive weeks that share a phase name into phase ranges.
+export const derivePhases = (weeks) => {
+  const phases = [];
+  weeks.forEach((w, i) => {
+    const last = phases.at(-1);
+    if (last && last.name === w.phase && last.endWeek === i) last.endWeek = i + 1;
+    else if (w.phase) phases.push({ key: `p${phases.length + 1}`, name: w.phase, startWeek: i + 1, endWeek: i + 1 });
+  });
+  return phases;
 };

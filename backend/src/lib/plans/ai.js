@@ -20,7 +20,8 @@ You receive the student's context and a draft plan produced by a rules engine fo
 - Keep exactly the given number of weeks, numbered from 1. Keep the five-phase structure of the draft unless the context gives a clear reason to shift a boundary.
 - Each week has 2-4 specific tasks plus, as the last task, the weekly report task from the draft.
 - Evaluation criterion weights are integers summing to 100. Milestones fall inside the plan's weeks.
-- Task ids follow the pattern w<week>-t<n>; every task starts with done = false.`;
+- Task ids follow the pattern w<week>-t<n>; every task starts with done = false.
+- Tag every task with its kind: "field" for work done at the organization (on real tasks, with the team, or the weekly report), "learning" for self-directed study (courses, reading, tutorials, practice exercises). Keep a sensible balance: learning-heavy early on, mostly field work later.`;
 
 const describeContext = (ctx) => {
   const lines = [

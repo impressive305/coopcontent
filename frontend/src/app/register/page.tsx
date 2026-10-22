@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { AuthShell } from "@/components/auth-shell";
+import { GpaField, UniversityField } from "@/components/student-fields";
 import { Alert, Button, Field, cx, formValues, useAction } from "@/components/ui";
 
 type Kind = "student" | "company";
@@ -23,6 +24,7 @@ export default function RegisterPage() {
         ? {
             ...v,
             gpa: v.gpa ? Number(v.gpa) : undefined,
+            gpaScale: v.gpa ? Number(v.gpaScale) : undefined,
             skills: v.skills ? v.skills.split(",").map((s) => s.trim()).filter(Boolean) : [],
           }
         : v;
@@ -45,9 +47,9 @@ export default function RegisterPage() {
         {kind === "student" ? (
           <>
             <Field label="الرقم الجامعي" name="universityId" required dir="ltr" />
-            <Field label="الجامعة" name="university" required />
+            <UniversityField />
             <Field label="التخصص" name="major" required placeholder="Computer Science" />
-            <Field label="المعدل (اختياري، من 5)" name="gpa" type="number" step="0.01" min="0" max="5" dir="ltr" />
+            <GpaField />
             <Field label="المهارات (مفصولة بفواصل)" name="skills" placeholder="React, SQL, Python" dir="ltr" />
           </>
         ) : (

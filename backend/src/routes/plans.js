@@ -8,6 +8,7 @@ import { validate } from '../middleware/validate.js';
 import { MAJORS, findMajor, matchMajor } from '../lib/plans/catalog.js';
 import { generateEnginePlan } from '../lib/plans/engine.js';
 import { aiAvailable, generateAiPlan } from '../lib/plans/ai.js';
+import { derivePhases, planEditSchema } from '../lib/plans/schema.js';
 
 const router = Router();
 router.use(authenticate, requireRole('STUDENT'));
@@ -23,6 +24,20 @@ const createSchema = z.object({
   goals: z.string().trim().max(1000).optional(),
   useAi: z.boolean().default(true),
 });
+
+const manualSchema = z.object({
+  title: z.string().trim().min(1).max(200),
+  durationWeeks: z.int().min(1).max(52),
+  hoursPerWeek: z.int().min(1).max(60).default(40),
+  startDate: z.coerce.date().optional(),
+});
+
+// Saves `data` as the student's only active plan.
+const createActivePlan = (studentId, data) =>
+  prisma.$transaction(async (tx) => {
+    await tx.trainingPlan.updateMany({ where: { studentId, isActive: true }, data: { isActive: false } });
+    return tx.trainingPlan.create({ data: { studentId, ...data } });
+  });
 
 const activePlacement = (studentId) =>
   prisma.placement.findFirst({
@@ -109,24 +124,51 @@ router.post('/', validate(createSchema), async (req, res) => {
     }
   }
 
-  const plan = await prisma.$transaction(async (tx) => {
-    await tx.trainingPlan.updateMany({ where: { studentId: student.id, isActive: true }, data: { isActive: false } });
-    return tx.trainingPlan.create({
-      data: {
-        studentId: student.id,
-        placementId: placement?.id,
-        majorKey,
-        trackKey,
-        durationWeeks,
-        hoursPerWeek,
-        startDate,
-        source,
-        model,
-        content,
-      },
-    });
+  const plan = await createActivePlan(student.id, {
+    placementId: placement?.id,
+    majorKey,
+    trackKey,
+    durationWeeks,
+    hoursPerWeek,
+    startDate,
+    source,
+    model,
+    content,
   });
   res.status(201).json({ ...plan, notice });
+});
+
+// An empty week-by-week skeleton the student fills in themselves.
+router.post('/manual', validate(manualSchema), async (req, res) => {
+  const student = await currentStudent(req.user.id);
+  const { title, durationWeeks, hoursPerWeek } = req.body;
+  const placement = await activePlacement(student.id);
+  const plan = await createActivePlan(student.id, {
+    placementId: placement?.id,
+    durationWeeks,
+    hoursPerWeek,
+    startDate: req.body.startDate ?? placement?.startDate,
+    source: 'MANUAL',
+    content: {
+      title,
+      summary: '',
+      goals: [],
+      skills: [],
+      phases: [],
+      weeks: Array.from({ length: durationWeeks }, (_, i) => ({
+        weekNo: i + 1,
+        phase: '',
+        theme: `الأسبوع ${i + 1}`,
+        objectives: [],
+        tasks: [],
+        deliverable: '',
+        skills: [],
+      })),
+      milestones: [],
+      evaluation: [],
+    },
+  });
+  res.status(201).json(plan);
 });
 
 const loadOwnPlan = async (userId, id) => {
@@ -149,6 +191,29 @@ router.patch(
     res.json(updated);
   },
 );
+
+// Replaces the plan's editable content: the student may rename, add, remove
+// and reorder weeks and tasks, whatever produced the plan.
+router.put('/:id', validate(planEditSchema), async (req, res) => {
+  const plan = await loadOwnPlan(req.user.id, Number(req.params.id));
+  const { weeks: edited, ...overview } = req.body;
+  const taskIds = edited.flatMap((w) => w.tasks.map((t) => t.id));
+  if (new Set(taskIds).size !== taskIds.length) throw new HttpError(400, 'Duplicate task ids');
+
+  const weeks = edited.map(({ milestone, ...w }, i) => ({ ...w, weekNo: i + 1 }));
+  const content = {
+    ...plan.content,
+    ...overview,
+    weeks,
+    phases: derivePhases(weeks),
+    milestones: edited.flatMap((w, i) => (w.milestone ? [{ weekNo: i + 1, title: w.milestone }] : [])),
+  };
+  const updated = await prisma.trainingPlan.update({
+    where: { id: plan.id },
+    data: { content, durationWeeks: weeks.length },
+  });
+  res.json(updated);
+});
 
 router.patch('/:id/activate', async (req, res) => {
   const plan = await loadOwnPlan(req.user.id, Number(req.params.id));

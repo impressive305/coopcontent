@@ -47,6 +47,18 @@ describe('auth', () => {
     expect(me.body.student.major).toBe('Computer Science');
   });
 
+  test('stores the GPA with its scale and rejects a GPA above the scale', async () => {
+    const over = await api().post('/api/auth/register/student').send({ ...student, gpa: 4.5, gpaScale: 4 });
+    expect(over.status).toBe(400);
+    const noScale = await api().post('/api/auth/register/student').send({ ...student, gpa: 3.5 });
+    expect(noScale.status).toBe(400);
+
+    const reg = await api().post('/api/auth/register/student').send({ ...student, gpa: 3.75, gpaScale: 4 });
+    expect(reg.status).toBe(201);
+    const me = await api().get('/api/auth/me').set(auth(reg.body.token));
+    expect(me.body.student).toMatchObject({ gpa: '3.75', gpaScale: 4 });
+  });
+
   test('rejects bad credentials, duplicates and invalid input', async () => {
     await api().post('/api/auth/register/student').send(student);
     expect((await api().post('/api/auth/register/student').send(student)).status).toBe(409);
@@ -138,5 +150,41 @@ describe('co-op lifecycle', () => {
     expect((await api().get(`/api/placements/${pid}`).set(auth(s2))).status).toBe(404);
     expect((await api().post(`/api/placements/${pid}/reports`).set(auth(s2)).send({ type: 'FINAL', ...report })).status).toBe(404);
     expect((await api().get('/api/placements').set(auth(admin))).body).toHaveLength(1);
+  });
+});
+
+describe('company directory', () => {
+  test('lists verified companies that take co-op students, with their contact details', async () => {
+    const admin = await createStaff('ADMIN', 'admin@example.com');
+    const studentToken = (await api().post('/api/auth/register/student').send(student)).body.token;
+    const companyToken = (await api().post('/api/auth/register/company').send(company)).body.token;
+
+    // Self-registered companies stay hidden until verified.
+    expect((await api().get('/api/companies').set(auth(studentToken))).body).toEqual([]);
+
+    const profile = await api().patch('/api/companies/me').set(auth(companyToken))
+      .send({ description: 'We build software.', website: 'https://example.com', majors: ['علوم الحاسب'] });
+    expect(profile.status).toBe(200);
+    expect((await api().patch('/api/companies/me').set(auth(companyToken)).send({ website: 'javascript:alert(1)' })).status).toBe(400);
+
+    const added = await api().post('/api/admin/companies').set(auth(admin))
+      .send({ name: 'Directory Co', city: 'Jeddah', sector: 'Energy', contactEmail: 'coop@example.com' });
+    expect(added.status).toBe(201);
+    expect((await api().post('/api/admin/companies').set(auth(studentToken)).send({ name: 'x', city: 'y', sector: 'z' })).status).toBe(403);
+
+    const companies = await prisma.company.findMany({ where: { userId: { not: null } } });
+    await api().patch(`/api/admin/companies/${companies[0].id}/verify`).set(auth(admin));
+
+    const list = (await api().get('/api/companies').set(auth(studentToken))).body;
+    expect(list.map((c) => c.name)).toEqual(['Directory Co', 'Riyadh Tech']);
+    expect(list[0].email).toBe('coop@example.com');
+    expect(list[1].email).toBe(company.email);
+    expect(list[1].crNumber).toBeUndefined();
+
+    const details = await api().get(`/api/companies/${list[1].id}`).set(auth(studentToken));
+    expect(details.body).toMatchObject({ description: 'We build software.', website: 'https://example.com', opportunities: [] });
+
+    await api().patch(`/api/admin/companies/${added.body.id}`).set(auth(admin)).send({ coopOpen: false });
+    expect((await api().get('/api/companies').set(auth(studentToken))).body).toHaveLength(1);
   });
 });

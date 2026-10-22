@@ -1,6 +1,8 @@
 "use client";
 
-import { api, type Placement } from "@/lib/api";
+import { useState } from "react";
+import { api, type CompanyProfile, type Placement } from "@/lib/api";
+import { CompanyProfileForm } from "../company-profile-form";
 import { useData } from "@/lib/use-data";
 import { Alert, Button, Card, Empty, Field, StatusBadge, formValues, formatDate, useAction } from "../ui";
 
@@ -12,7 +14,8 @@ type Stats = {
   activePlacements: number;
   pendingReports: number;
 };
-type PendingCompany = { id: number; name: string; crNumber: string; city: string; sector: string; user: { name: string; email: string } };
+type PendingCompany = { id: number; name: string; crNumber: string | null; city: string; sector: string; user: { name: string; email: string } | null };
+type AdminCompany = CompanyProfile & { user: { name: string; email: string } | null };
 type Supervisor = { id: number; name: string; email: string; _count: { supervisedUnits: number } };
 
 function StatTiles({ stats }: { stats: Stats }) {
@@ -33,6 +36,47 @@ function StatTiles({ stats }: { stats: Stats }) {
         </div>
       ))}
     </div>
+  );
+}
+
+function CompanyDirectory({ onChange }: { onChange: () => void }) {
+  const companies = useData<AdminCompany[]>("/admin/companies?verified=true");
+  const [editing, setEditing] = useState<number | "new" | null>(null);
+  const saved = () => { setEditing(null); companies.reload(); onChange(); };
+
+  return (
+    <Card
+      title="دليل جهات التدريب"
+      actions={editing !== "new" && <Button onClick={() => setEditing("new")}>إضافة جهة</Button>}
+    >
+      <p className="mb-4 text-sm text-gray-500">الجهات المعتمدة التي فتحت التدريب التعاوني تظهر للطلاب ويتواصلون معها مباشرة. يمكنك إضافة جهة لم تسجّل في المنصة.</p>
+      <Alert>{companies.error}</Alert>
+      {editing === "new" && (
+        <div className="mb-6 rounded-xl border border-black/10 p-4 dark:border-white/10">
+          <CompanyProfileForm submitLabel="إضافة الجهة" onSubmit={(body) => api("/admin/companies", { method: "POST", body }).then(saved)} />
+          <Button variant="secondary" className="mt-3" onClick={() => setEditing(null)}>إلغاء</Button>
+        </div>
+      )}
+      {companies.data?.length === 0 && <Empty>لا توجد جهات معتمدة بعد.</Empty>}
+      <ul className="divide-y divide-black/5 text-sm dark:divide-white/10">
+        {companies.data?.map((c) => (
+          <li key={c.id} className="py-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="font-medium">{c.name} {!c.coopOpen && <StatusBadge status="CLOSED" />}</p>
+                <p className="text-gray-500">{c.city} · {c.sector} · {c.user ? "حساب مسجّل" : "أضافها المسؤول"}{c.contactEmail && <> · <span dir="ltr">{c.contactEmail}</span></>}</p>
+              </div>
+              <Button variant="secondary" onClick={() => setEditing(editing === c.id ? null : c.id)}>{editing === c.id ? "إغلاق" : "تعديل"}</Button>
+            </div>
+            {editing === c.id && (
+              <div className="mt-3 rounded-xl border border-black/10 p-4 dark:border-white/10">
+                <CompanyProfileForm initial={c} submitLabel="حفظ" onSubmit={(body) => api(`/admin/companies/${c.id}`, { method: "PATCH", body }).then(saved)} />
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </Card>
   );
 }
 
@@ -72,13 +116,15 @@ export function AdminDashboard() {
             <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
               <div>
                 <p className="font-medium">{c.name}</p>
-                <p className="text-gray-500">السجل التجاري <span dir="ltr">{c.crNumber}</span> · {c.city} · {c.sector} · {c.user.name}</p>
+                <p className="text-gray-500">السجل التجاري <span dir="ltr">{c.crNumber}</span> · {c.city} · {c.sector}{c.user && ` · ${c.user.name}`}</p>
               </div>
               <Button disabled={action.busy} onClick={() => verify(c.id)}>اعتماد</Button>
             </li>
           ))}
         </ul>
       </Card>
+
+      <CompanyDirectory onChange={stats.reload} />
 
       <Card title="إسناد المشرفين">
         {placements.data?.length === 0 && <Empty>لا توجد حالات تدريب بعد.</Empty>}

@@ -44,6 +44,15 @@ export function Field({ label, textarea, ...props }: { label: string; textarea?:
   );
 }
 
+export function Select({ label, children, ...props }: { label: string; children: React.ReactNode } & React.SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <label className="block space-y-1 text-sm">
+      <span className="font-medium">{label}</span>
+      <select {...props} className={inputClass}>{children}</select>
+    </label>
+  );
+}
+
 const tones = {
   gray: "bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-200",
   green: "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-200",
@@ -62,6 +71,7 @@ const statusLabels: Record<string, [string, keyof typeof tones]> = {
   SUBMITTED: ["بانتظار المراجعة", "amber"],
   APPROVED: ["معتمد", "green"],
   RETURNED: ["مُعاد للتعديل", "red"],
+  CLOSED: ["التدريب مغلق", "gray"],
 };
 
 export function StatusBadge({ status }: { status: string }) {

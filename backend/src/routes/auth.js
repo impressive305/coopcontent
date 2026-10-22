@@ -21,7 +21,11 @@ const studentSchema = z.object({
   university: z.string().trim().min(2),
   major: z.string().trim().min(2),
   gpa: z.number().min(0).max(5).optional(),
+  gpaScale: z.union([z.literal(4), z.literal(5)]).optional(),
   skills: z.array(z.string().trim().min(1)).max(30).default([]),
+}).refine((s) => s.gpa === undefined || (s.gpaScale && s.gpa <= s.gpaScale), {
+  message: 'GPA must not exceed the selected scale',
+  path: ['gpa'],
 });
 
 const companySchema = z.object({

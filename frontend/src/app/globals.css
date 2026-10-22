@@ -1,8 +1,12 @@
 @import "tailwindcss";
 
+/* Light is the default; dark applies when <html data-theme="dark"> (see ThemeToggle). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 :root {
   --background: #f6f7f9;
   --foreground: #1a1d23;
+  color-scheme: light;
 }
 
 @theme inline {
@@ -13,11 +17,10 @@
   --font-sans: "Segoe UI", Tahoma, "Noto Sans Arabic", "Geeza Pro", system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f1115;
-    --foreground: #e8eaee;
-  }
+[data-theme="dark"] {
+  --background: #0f1115;
+  --foreground: #e8eaee;
+  color-scheme: dark;
 }
 
 body {

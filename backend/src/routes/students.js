@@ -13,8 +13,12 @@ const profileSchema = z.object({
   university: z.string().trim().min(2),
   major: z.string().trim().min(2),
   gpa: z.number().min(0).max(5).nullable(),
+  gpaScale: z.union([z.literal(4), z.literal(5)]).nullable(),
   skills: z.array(z.string().trim().min(1)).max(30),
-}).partial();
+}).partial().refine((s) => s.gpa == null || s.gpa <= (s.gpaScale ?? 5), {
+  message: 'GPA must not exceed the selected scale',
+  path: ['gpa'],
+});
 
 router.patch('/me', validate(profileSchema), async (req, res) => {
   await currentStudent(req.user.id);
