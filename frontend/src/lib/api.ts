@@ -31,6 +31,12 @@ const ERROR_MESSAGES: Record<string, string> = {
   "Internal server error": "حدث خطأ في الخادم، حاول لاحقاً.",
   "Logo must be a PNG, JPEG or WebP image": "الشعار يجب أن يكون صورة PNG أو JPEG أو WebP.",
   "Logo must be 300 KB or smaller": "حجم الشعار يجب ألا يتجاوز 300 كيلوبايت.",
+  "Request origin not allowed": "رُفض الطلب لأنه لم يصدر من المنصة.",
+  "Password must be at least 10 characters": "كلمة المرور يجب ألا تقل عن 10 أحرف.",
+  "Password is too long": "كلمة المرور طويلة جداً.",
+  "Password must include letters and numbers": "كلمة المرور يجب أن تجمع أحرفاً وأرقاماً.",
+  "Password is too common": "كلمة المرور شائعة وسهلة التخمين، اختر غيرها.",
+  "Password must not contain your name or email": "كلمة المرور يجب ألا تحتوي على اسمك أو بريدك.",
 };
 
 export async function api<T = unknown>(path: string, options: { method?: string; body?: unknown } = {}): Promise<T> {
@@ -48,7 +54,9 @@ export async function api<T = unknown>(path: string, options: { method?: string;
   const data = res.status === 204 ? null : await res.json().catch(() => null);
   if (!res.ok) {
     const details = data?.details;
-    const translated = ERROR_MESSAGES[data?.error];
+    // A validation error says which rule failed; show that rule rather than a generic message.
+    const detail = Array.isArray(details) ? details.map((d) => ERROR_MESSAGES[d?.message]).find(Boolean) : undefined;
+    const translated = detail ?? ERROR_MESSAGES[data?.error];
     const first = !translated && Array.isArray(details) && details[0]?.message ? `: ${details[0].message}` : "";
     throw new ApiError(res.status, translated ?? `${data?.error ?? "تعذّر تنفيذ الطلب"}${first}`, details);
   }

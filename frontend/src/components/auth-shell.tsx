@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Building2, CalendarCheck, Eye, EyeOff, FileText, Route } from "lucide-react";
+import { Building2, CalendarCheck, Check, Circle, Eye, EyeOff, FileText, Route } from "lucide-react";
+import { PASSWORD_MIN_LENGTH, passwordChecks } from "@/lib/password";
 import { ThemeToggle } from "./theme-toggle";
 import { cx, inputClass } from "./ui";
 
@@ -61,12 +62,9 @@ export function AuthShell({ title, subtitle, children, footer, wide }: { title: 
   );
 }
 
-export function PasswordField({ label, name, autoComplete, minLength, showStrength }: { label: string; name: string; autoComplete: string; minLength?: number; showStrength?: boolean }) {
+export function PasswordField({ label, name, autoComplete, showRules }: { label: string; name: string; autoComplete: string; showRules?: boolean }) {
   const [visible, setVisible] = useState(false);
   const [value, setValue] = useState("");
-  // A rough guide only; the server enforces the minimum length.
-  const score = [value.length >= 8, /[A-Z]/.test(value) && /[a-z]/.test(value), /\d/.test(value), /[^A-Za-z0-9]/.test(value) || value.length >= 12].filter(Boolean).length;
-  const labels = ["ضعيفة جداً", "ضعيفة", "متوسطة", "جيدة", "قوية"];
 
   return (
     <label className="block space-y-1.5 text-sm">
@@ -76,7 +74,8 @@ export function PasswordField({ label, name, autoComplete, minLength, showStreng
           name={name}
           type={visible ? "text" : "password"}
           autoComplete={autoComplete}
-          minLength={minLength}
+          minLength={showRules ? PASSWORD_MIN_LENGTH : undefined}
+          maxLength={200}
           required
           dir="ltr"
           value={value}
@@ -87,14 +86,14 @@ export function PasswordField({ label, name, autoComplete, minLength, showStreng
           {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
         </button>
       </span>
-      {showStrength && value && (
-        <span className="flex items-center gap-2 text-xs text-subtle">
-          <span className="flex flex-1 gap-1">
-            {[0, 1, 2, 3].map((i) => (
-              <span key={i} className={cx("h-1 flex-1 rounded-full", i < score ? (score <= 1 ? "bg-red-500" : score === 2 ? "bg-amber-500" : "bg-emerald-500") : "bg-muted")} />
-            ))}
-          </span>
-          {labels[score]}
+      {showRules && (
+        <span className="block space-y-1 pt-1 text-xs">
+          {passwordChecks(value).map((c) => (
+            <span key={c.label} className={cx("flex items-center gap-1.5", c.ok ? "text-emerald-700 dark:text-emerald-400" : "text-subtle")}>
+              {c.ok ? <Check className="size-3.5" /> : <Circle className="size-3.5" />}{c.label}
+            </span>
+          ))}
+          <span className="flex items-center gap-1.5 text-subtle"><Circle className="size-3.5" />ليست كلمة شائعة ولا تحتوي اسمك أو بريدك</span>
         </span>
       )}
     </label>

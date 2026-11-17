@@ -6,7 +6,7 @@ import { checkPlanConsistency, planContentSchema } from '../src/lib/plans/schema
 const student = {
   name: 'Noura',
   email: 'noura@example.com',
-  password: 'Password123',
+  password: 'Coop-Train-2026',
   universityId: '441000123',
   university: 'KSU',
   major: 'علوم الحاسب',

@@ -81,7 +81,7 @@ export default function RegisterPage() {
         <Section title={kind === "student" ? "بيانات الحساب" : "بيانات مسؤول التدريب"}>
           <Field label={kind === "student" ? "الاسم الكامل" : "اسم مسؤول التدريب"} name="name" required minLength={2} autoComplete="name" />
           <Field label="البريد الإلكتروني" name="email" type="email" autoComplete="email" required dir="ltr" placeholder="name@example.com" />
-          <PasswordField label="كلمة المرور (8 أحرف على الأقل)" name="password" autoComplete="new-password" minLength={8} showStrength />
+          <PasswordField label="كلمة المرور" name="password" autoComplete="new-password" showRules />
         </Section>
 
         {kind === "student" ? (

@@ -8,6 +8,7 @@ import { GpaField, UniversityField } from "../student-fields";
 import { SOURCE_LABELS } from "../student/plan-shared";
 import { Alert, Button, Card, Drawer, Empty, Field, Select, StatusBadge, cx, formValues, formatDate, useAction } from "../ui";
 import { SUPERVISOR_ROLE_ENABLED } from "@/lib/features";
+import { PASSWORD_HINT, PASSWORD_MIN_LENGTH } from "@/lib/password";
 import { ROLE_LABELS, confirmDelete, type AdminPlacement, type AdminUser, type AdminUserDetails } from "./types";
 
 const ROLE_TABS = ([["", "الكل"], ["STUDENT", "الطلاب"], ["COMPANY", "الجهات"], ["SUPERVISOR", "المشرفون"], ["ADMIN", "المسؤولون"]] as [Role | "", string][])
@@ -27,7 +28,7 @@ function AddStaffForm({ onCreated }: { onCreated: () => void }) {
     <form onSubmit={submit} className="grid gap-3 sm:grid-cols-5 sm:items-end">
       <Field label="الاسم" name="name" required minLength={2} />
       <Field label="البريد" name="email" type="email" required dir="ltr" />
-      <Field label="كلمة مرور مؤقتة" name="password" type="password" minLength={8} required dir="ltr" />
+      <Field label="كلمة مرور مؤقتة" name="password" type="password" minLength={PASSWORD_MIN_LENGTH} maxLength={200} required dir="ltr" title={PASSWORD_HINT} />
       <Select label="الدور" name="role" defaultValue={SUPERVISOR_ROLE_ENABLED ? "SUPERVISOR" : "ADMIN"}>
         {SUPERVISOR_ROLE_ENABLED && <option value="SUPERVISOR">مشرف أكاديمي</option>}
         <option value="ADMIN">مسؤول</option>
@@ -133,8 +134,8 @@ function UserDetails({ id, onChanged, onClose }: { id: number; onChanged: () => 
               <div className="sm:col-span-2"><Button type="submit" variant="secondary" disabled={action.busy}>حفظ</Button></div>
             </form>
             <div className="flex flex-wrap items-end gap-2">
-              <div className="min-w-48 flex-1"><Field label="كلمة مرور جديدة" type="password" minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} dir="ltr" /></div>
-              <Button variant="secondary" disabled={action.busy || password.length < 8} onClick={() => patch({ password }).then(() => setPassword(""))}>تعيين كلمة المرور</Button>
+              <div className="min-w-48 flex-1"><Field label="كلمة مرور جديدة" type="password" minLength={PASSWORD_MIN_LENGTH} maxLength={200} hint={PASSWORD_HINT} value={password} onChange={(e) => setPassword(e.target.value)} dir="ltr" /></div>
+              <Button variant="secondary" disabled={action.busy || password.length < PASSWORD_MIN_LENGTH} onClick={() => patch({ password }).then(() => setPassword(""))}>تعيين كلمة المرور</Button>
             </div>
             <div className="flex flex-wrap gap-2 border-t border-black/5 pt-3 dark:border-white/10">
               <Button variant="secondary" disabled={action.busy} onClick={() => patch({ isActive: !u.isActive })}>{u.isActive ? "إيقاف الحساب" : "إعادة تفعيل الحساب"}</Button>

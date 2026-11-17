@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { BCRYPT_ROUNDS, signToken } from '../lib/auth.js';
 import { clearSession, setSession } from '../lib/session.js';
+import { checkPassword, passwordField } from '../lib/password.js';
 import { HttpError } from '../lib/errors.js';
 import { authenticate } from '../middleware/auth.js';
 import { supervisorRoleEnabled } from '../lib/features.js';
@@ -14,7 +15,7 @@ const router = Router();
 const account = {
   name: z.string().trim().min(2),
   email: z.string().trim().toLowerCase().pipe(z.email()),
-  password: z.string().min(8),
+  password: passwordField,
 };
 
 const studentSchema = z.object({
@@ -25,7 +26,7 @@ const studentSchema = z.object({
   gpa: z.number().min(0).max(5).optional(),
   gpaScale: z.union([z.literal(4), z.literal(5)]).optional(),
   skills: z.array(z.string().trim().min(1)).max(30).default([]),
-}).refine((s) => s.gpa === undefined || (s.gpaScale && s.gpa <= s.gpaScale), {
+}).superRefine(checkPassword).refine((s) => s.gpa === undefined || (s.gpaScale && s.gpa <= s.gpaScale), {
   message: 'GPA must not exceed the selected scale',
   path: ['gpa'],
 });
@@ -36,9 +37,10 @@ const companySchema = z.object({
   crNumber: z.string().trim().regex(/^\d{10}$/, 'Commercial registration must be 10 digits'),
   city: z.string().trim().min(2),
   sector: z.string().trim().min(2),
-});
+}).superRefine(checkPassword);
 
-const loginSchema = z.object({ email: account.email, password: z.string().min(1) });
+// Login checks only that something was typed: older passwords predate the policy.
+const loginSchema = z.object({ email: account.email, password: z.string().min(1).max(200) });
 
 const publicUser = ({ passwordHash, ...user }) => user;
 

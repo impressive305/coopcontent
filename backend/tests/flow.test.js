@@ -5,7 +5,7 @@ import { api, auth, createStaff, prisma, rawApi, resetDb, sessionOf } from './se
 const student = {
   name: 'Noura',
   email: 'noura@example.com',
-  password: 'Password123',
+  password: 'Coop-Train-2026',
   universityId: '441000123',
   university: 'KSU',
   major: 'Computer Science',
@@ -15,7 +15,7 @@ const student = {
 const company = {
   name: 'Khalid',
   email: 'hr@example.com',
-  password: 'Password123',
+  password: 'Coop-Train-2026',
   companyName: 'Riyadh Tech',
   crNumber: '1010123456',
   city: 'Riyadh',
@@ -92,6 +92,27 @@ describe('auth', () => {
     const out = await api().post('/api/auth/logout');
     expect(out.status).toBe(204);
     expect([out.headers['set-cookie']].flat().join()).toMatch(/coopconnect_session=;.*Expires=Thu, 01 Jan 1970/);
+  });
+
+  test('enforces the password policy on sign-up and on admin-set passwords', async () => {
+    const weak = async (password, extra = {}) => (await api().post('/api/auth/register/student').send({ ...student, ...extra, password })).body.details?.map((d) => d.message);
+    expect(await weak('Short1')).toContain('Password must be at least 10 characters');
+    expect(await weak('onlyletterspass')).toContain('Password must include letters and numbers');
+    expect(await weak('Password123')).toContain('Password is too common');
+    expect(await weak('QWERTY12345')).toContain('Password is too common');
+    expect(await weak('Noura-Pass-2026')).toContain('Password must not contain your name or email');
+    expect(await weak('x'.repeat(40) + 'ع'.repeat(20) + '1')).toContain('Password is too long');
+    expect(await prisma.user.count()).toBe(0);
+
+    const ok = await api().post('/api/auth/register/student').send(student);
+    expect(ok.status).toBe(201);
+
+    // Admin resets follow the same policy, checked against the account's own name and email.
+    const admin = await createStaff('ADMIN', 'admin@example.com');
+    const reset = await api().patch(`/api/admin/users/${ok.body.user.id}`).set(auth(admin)).send({ password: 'noura-reset-99' });
+    expect(reset.status).toBe(400);
+    expect(reset.body.details[0].message).toBe('Password must not contain your name or email');
+    expect((await api().post('/api/admin/users').set(auth(admin)).send({ name: 'Ops', email: 'ops@example.com', password: 'admin12345', role: 'ADMIN' })).status).toBe(400);
   });
 
   test('stores password hashes, never passwords', async () => {
@@ -238,20 +259,20 @@ describe('admin control panel', () => {
     expect(details.body.passwordHash).toBeUndefined();
 
     const edited = await api().patch(`/api/admin/users/${studentId}`).set(auth(admin))
-      .send({ name: 'Noura A', student: { major: 'Software Engineering' }, password: 'NewPassword1' });
+      .send({ name: 'Noura A', student: { major: 'Software Engineering' }, password: 'Fresh-Start-2026' });
     expect(edited.body).toMatchObject({ name: 'Noura A', student: { major: 'Software Engineering' } });
-    expect((await api().post('/api/auth/login').send({ email: student.email, password: 'NewPassword1' })).status).toBe(200);
+    expect((await api().post('/api/auth/login').send({ email: student.email, password: 'Fresh-Start-2026' })).status).toBe(200);
 
     // Suspension blocks both new logins and tokens already issued.
     await api().patch(`/api/admin/users/${studentId}`).set(auth(admin)).send({ isActive: false });
-    expect((await api().post('/api/auth/login').send({ email: student.email, password: 'NewPassword1' })).status).toBe(403);
+    expect((await api().post('/api/auth/login').send({ email: student.email, password: 'Fresh-Start-2026' })).status).toBe(403);
     expect((await api().get('/api/auth/me').set(auth(reg.token))).status).toBe(403);
 
     const adminId = (await api().get('/api/auth/me').set(auth(admin))).body.id;
     expect((await api().patch(`/api/admin/users/${adminId}`).set(auth(admin)).send({ isActive: false })).status).toBe(409);
     expect((await api().delete(`/api/admin/users/${adminId}`).set(auth(admin))).status).toBe(409);
 
-    const staff = await api().post('/api/admin/users').set(auth(admin)).send({ name: 'Second Admin', email: 'a2@example.com', password: 'Password123', role: 'ADMIN' });
+    const staff = await api().post('/api/admin/users').set(auth(admin)).send({ name: 'Second Admin', email: 'a2@example.com', password: 'Ops-Desk-4410', role: 'ADMIN' });
     expect(staff.body.role).toBe('ADMIN');
 
     expect((await api().delete(`/api/admin/users/${studentId}`).set(auth(admin))).status).toBe(204);
@@ -299,7 +320,7 @@ describe('paused supervisor role', () => {
 
     expect((await api().post('/api/auth/login').send({ email: 'sup@example.com', password: 'Password123' })).status).toBe(403);
     expect((await api().get('/api/auth/me').set(auth(oldToken))).status).toBe(403);
-    expect((await api().post('/api/admin/users').set(auth(admin)).send({ name: 'New Sup', email: 's2@example.com', password: 'Password123', role: 'SUPERVISOR' })).status).toBe(409);
+    expect((await api().post('/api/admin/users').set(auth(admin)).send({ name: 'New Sup', email: 's2@example.com', password: 'Advisor-Desk-77', role: 'SUPERVISOR' })).status).toBe(409);
     expect((await api().get('/api/admin/supervisors').set(auth(admin))).body).toEqual([]);
 
     const company = (await api().post('/api/admin/companies').set(auth(admin)).send({ name: 'Co', city: 'Riyadh', sector: 'Energy' })).body;

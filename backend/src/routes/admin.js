@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { BCRYPT_ROUNDS } from '../lib/auth.js';
+import { checkPassword, passwordField, passwordProblems } from '../lib/password.js';
 import { HttpError, notFound } from '../lib/errors.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
@@ -23,14 +24,14 @@ const email = z.string().trim().toLowerCase().pipe(z.email());
 const staffSchema = z.object({
   name: z.string().trim().min(2),
   email,
-  password: z.string().min(8),
+  password: passwordField,
   role: z.enum(['SUPERVISOR', 'ADMIN']).default('SUPERVISOR'),
-});
+}).superRefine(checkPassword);
 
 const userUpdateSchema = z.object({
   name: z.string().trim().min(2),
   email,
-  password: z.string().min(8),
+  password: passwordField,
   isActive: z.boolean(),
   student: z.object({
     universityId: z.string().trim().min(3),
@@ -134,6 +135,10 @@ router.patch('/users/:id', validate(userUpdateSchema), async (req, res) => {
   const existing = await prisma.user.findUnique({ where: { id: id(req) }, include: { student: true } });
   if (!existing) throw notFound('User');
   if (student && !existing.student) throw new HttpError(400, 'User has no student profile');
+  if (password) {
+    const problems = passwordProblems(password, { name: data.name ?? existing.name, email: data.email ?? existing.email });
+    if (problems.length) throw new HttpError(400, 'Validation failed', problems.map((message) => ({ path: 'password', message })));
+  }
   const user = await prisma.user.update({
     where: { id: existing.id },
     data: {
