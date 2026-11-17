@@ -31,12 +31,16 @@ const studentSchema = z.object({
   path: ['gpa'],
 });
 
-const companySchema = z.object({
+// A company signs up with contact and organization basics only. The training
+// unit reviews the request, contacts the company outside the platform and
+// completes the rest (commercial registration, website...) before approving it.
+const companySchema = z.strictObject({
   ...account,
-  companyName: z.string().trim().min(2),
-  crNumber: z.string().trim().regex(/^\d{10}$/, 'Commercial registration must be 10 digits'),
-  city: z.string().trim().min(2),
-  sector: z.string().trim().min(2),
+  name: account.name.max(120),
+  email: z.string().trim().toLowerCase().max(254).pipe(z.email()),
+  companyName: z.string().trim().min(2).max(200),
+  city: z.string().trim().min(2).max(100),
+  sector: z.string().trim().min(2).max(100),
 }).superRefine(checkPassword);
 
 // Login checks only that something was typed: older passwords predate the policy.

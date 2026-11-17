@@ -17,7 +17,6 @@ const company = {
   email: 'hr@example.com',
   password: 'Coop-Train-2026',
   companyName: 'Riyadh Tech',
-  crNumber: '1010123456',
   city: 'Riyadh',
   sector: 'Software',
 };
@@ -65,7 +64,10 @@ describe('auth', () => {
     await api().post('/api/auth/register/student').send(student);
     expect((await api().post('/api/auth/register/student').send(student)).status).toBe(409);
     expect((await api().post('/api/auth/login').send({ email: student.email, password: 'wrong-pass' })).status).toBe(401);
-    expect((await api().post('/api/auth/register/company').send({ ...company, crNumber: '12' })).status).toBe(400);
+    // Company sign-up takes only its six fields; anything else is refused, not ignored.
+    expect((await api().post('/api/auth/register/company').send({ ...company, crNumber: '1010123456' })).status).toBe(400);
+    expect((await api().post('/api/auth/register/company').send({ ...company, verified: true })).status).toBe(400);
+    expect((await api().post('/api/auth/register/company').send({ ...company, city: '' })).status).toBe(400);
   });
 
   test('keeps the session in an httpOnly cookie and rejects cross-site writes', async () => {

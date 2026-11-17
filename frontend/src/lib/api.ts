@@ -23,7 +23,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   "Invalid email or password": "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
   "This account is suspended": "هذا الحساب موقوف. تواصل مع وحدة التدريب.",
   "The supervisor role is currently disabled": "دور المشرف الأكاديمي معطّل حالياً.",
-  "Duplicate value": "هذه البيانات مسجّلة مسبقاً (البريد أو الرقم الجامعي أو السجل التجاري).",
+  "Duplicate value": "هذه البيانات مسجّلة مسبقاً، مثل البريد الإلكتروني أو الرقم الجامعي.",
   "Validation failed": "تحقّق من البيانات المدخلة.",
   "Authentication required": "سجّل الدخول للمتابعة.",
   "Invalid or expired token": "انتهت الجلسة، سجّل الدخول مجدداً.",

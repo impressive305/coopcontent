@@ -9,6 +9,9 @@ import { AuthShell, PasswordField } from "@/components/auth-shell";
 import { GpaField, MajorField, UniversityField } from "@/components/student-fields";
 import { Alert, Button, Field, cx, formValues, useAction } from "@/components/ui";
 
+const SAUDI_CITIES = ["الرياض", "جدة", "مكة المكرمة", "المدينة المنورة", "الدمام", "الخبر", "الظهران", "الجبيل", "الأحساء", "القطيف", "الطائف", "تبوك", "أبها", "خميس مشيط", "بريدة", "عنيزة", "حائل", "جازان", "نجران", "الباحة", "سكاكا", "عرعر", "ينبع", "حفر الباطن", "نيوم"];
+const COMPANY_SECTORS = ["تقنية المعلومات", "الرعاية الصحية", "البنوك والخدمات المالية", "جهة حكومية", "الاتصالات", "الطاقة والبتروكيماويات", "الصناعة والتصنيع", "الإنشاءات والهندسة", "الاستشارات", "التعليم", "التجزئة والتجارة", "النقل والطيران", "الإعلام", "القطاع غير الربحي"];
+
 type Kind = "student" | "company";
 
 const KINDS: { key: Kind; icon: typeof GraduationCap; title: string; text: string }[] = [
@@ -96,22 +99,26 @@ export default function RegisterPage() {
           </Section>
         ) : (
           <Section title="بيانات الجهة">
-            <Field label="اسم الجهة" name="companyName" required minLength={2} />
+            <Field label="اسم الجهة" name="companyName" required minLength={2} maxLength={200} autoComplete="organization" />
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="رقم السجل التجاري" name="crNumber" pattern="\d{10}" required dir="ltr" hint="10 أرقام" inputMode="numeric" />
-              <Field label="المدينة" name="city" required placeholder="مثال: الرياض" />
+              <Field label="المدينة" name="city" required minLength={2} maxLength={100} list="company-cities" placeholder="مثال: الرياض" />
+              <Field label="القطاع" name="sector" required minLength={2} maxLength={100} list="company-sectors" placeholder="مثال: الرعاية الصحية" />
             </div>
-            <Field label="القطاع" name="sector" required placeholder="مثال: الرعاية الصحية" />
-            <p className="flex items-start gap-2 rounded-xl bg-muted p-3 text-xs leading-5 text-subtle">
+            <datalist id="company-cities">{SAUDI_CITIES.map((c) => <option key={c} value={c} />)}</datalist>
+            <datalist id="company-sectors">{COMPANY_SECTORS.map((s) => <option key={s} value={s} />)}</datalist>
+            <div className="flex items-start gap-3 rounded-xl bg-muted p-4 text-xs leading-6 text-subtle">
               <ShieldCheck className="mt-0.5 size-4 shrink-0 text-brand" />
-              تراجع وحدة التدريب السجل التجاري قبل ظهور الجهة للطلاب وقبل نشر الفرص.
-            </p>
+              <span>
+                بعد إرسال الطلب يراجعه فريق وحدة التدريب ويتواصل معكم على البريد المسجّل لاستكمال بيانات الجهة، مثل السجل التجاري.
+                تظهر الجهة للطلاب ويمكنكم نشر الفرص بعد اعتماد الطلب.
+              </span>
+            </div>
           </Section>
         )}
 
         <div className="space-y-3">
           <Alert>{error}</Alert>
-          <Button type="submit" disabled={busy} className="w-full py-3">{busy ? "جارٍ إنشاء الحساب..." : "إنشاء الحساب"}</Button>
+          <Button type="submit" disabled={busy} className="w-full py-3">{busy ? "جارٍ الإرسال..." : kind === "company" ? "إرسال طلب التسجيل" : "إنشاء الحساب"}</Button>
         </div>
       </form>
     </AuthShell>
