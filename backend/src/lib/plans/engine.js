@@ -1,5 +1,5 @@
 import {
-  COMMON_TASKS, GENERIC_TASKS, PHASES, PHASE_OBJECTIVES, PHASE_THEMES, PROFESSIONAL_SKILLS, WEEKLY_REPORT_TASK,
+  COMMON_TASKS, GENERIC_TASKS, ONGOING_TASKS, PHASES, PHASE_OBJECTIVES, PHASE_THEMES, PROFESSIONAL_SKILLS, WEEKLY_REPORT_TASK,
 } from './catalog.js';
 
 const GENERIC_TOOL = 'الأنظمة والأدوات المستخدمة في الجهة';
@@ -32,6 +32,18 @@ const fill = (text, ctx) =>
 // Picks `count` items starting at `offset`, wrapping around the bank.
 const rotate = (bank, offset, count) =>
   Array.from({ length: Math.min(count, bank.length) }, (_, i) => bank[(offset + i) % bank.length]);
+
+// About one task per 10 hours of weekly work, from 2 to 5, besides the weekly report.
+export const tasksPerWeek = (hoursPerWeek) => Math.min(5, Math.max(2, Math.round(hoursPerWeek / 10)));
+
+// Phases whose tasks happen once, in order: each is placed in one week only, and
+// a later step never lands before an earlier one (item k goes to week k·weeks/items).
+const ONE_OFF_PHASES = new Set(['orientation', 'project', 'closure']);
+const spread = (bank, weeks, week) => bank.filter((_, k) => Math.floor((k * weeks) / bank.length) === week);
+
+// The week's own tasks first, then that phase's recurring work, without duplicates.
+const fillWeek = (picked, ongoing, offset, count) =>
+  [...picked, ...rotate(ongoing, offset, ongoing.length)].filter((t, i, all) => all.indexOf(t) === i).slice(0, count);
 
 // Splits N weeks across the five phases. Orientation and closure get at least one
 // week; short plans (< 5 weeks) skip the separate learning phase.
@@ -78,6 +90,7 @@ export const generateEnginePlan = ({ profile, majorName, sector, durationWeeks, 
     project: profile.project,
   };
   const phases = allocateWeeks(durationWeeks);
+  const count = tasksPerWeek(hoursPerWeek);
   const banks = {
     orientation: COMMON_TASKS.orientation,
     learning: profile.banks.learning,
@@ -99,11 +112,12 @@ export const generateEnginePlan = ({ profile, majorName, sector, durationWeeks, 
       const part = span.length > 1 ? ` (${span.indexOf(i) + 1}/${span.length})` : '';
       const theme = fill(themes[themeIndex(i)], ctx) + part;
       const bank = banks[phase.key];
-      // The project phase walks its bank in order so the steps progress.
-      const picks = phase.key === 'project'
-        ? rotate(bank, Math.floor((i * bank.length) / length), 2)
-        : rotate(bank, i * 2, phase.key === 'orientation' || phase.key === 'closure' ? 3 : 2);
-      const titles = [...picks.map((t) => fill(t, ctx)), WEEKLY_REPORT_TASK];
+      // One-off phases place each task once, in order. Learning and contribution
+      // work recurs: each week takes about half the bank, rotating, so the same
+      // task does not fill every week; recurring work completes the week.
+      const take = Math.min(count, Math.ceil(bank.length / 2));
+      const picks = ONE_OFF_PHASES.has(phase.key) ? spread(bank, length, i) : rotate(bank, i * take, take);
+      const titles = [...fillWeek(picks, ONGOING_TASKS[phase.key], i, count).map((t) => fill(t, ctx)), WEEKLY_REPORT_TASK];
       const isPhaseEnd = weekNo === phase.endWeek;
       weeks.push({
         weekNo,

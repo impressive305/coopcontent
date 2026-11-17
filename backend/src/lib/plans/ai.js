@@ -18,7 +18,7 @@ You receive the student's context and a draft plan produced by a rules engine. S
 - Make tasks concrete and checkable (a reviewer can tell whether each one was done), sized for the stated weekly hours, and progressing in difficulty.
 - Tailor tasks to the company, sector and opportunity when they are given, and to the student's goals and existing skills (skip basics they already have). Do not invent facts about the company; when nothing is known about it, keep tasks applicable to any employer in the field.
 - Keep exactly the given number of weeks, numbered from 1. Keep the five-phase structure of the draft unless the context gives a clear reason to shift a boundary.
-- Each week has 2-4 specific tasks plus, as the last task, the weekly report task from the draft.
+- Each week has about one specific task per 10 hours of the stated weekly hours (between 2 and 5), plus, as the last task, the weekly report task from the draft. A one-time task (orientation session, requirements sign-off, final presentation) appears in one week only, and project steps move forward week by week.
 - Evaluation criterion weights are integers summing to 100. Milestones fall inside the plan's weeks.
 - Task ids follow the pattern w<week>-t<n>; every task starts with done = false.
 - Tag every task with its kind: "field" for work done at the organization (on real tasks, with the team, or the weekly report), "learning" for self-directed study (courses, reading, tutorials, practice exercises). Keep a sensible balance: learning-heavy early on, mostly field work later.`;

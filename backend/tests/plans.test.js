@@ -1,6 +1,6 @@
 import { api, auth, prisma, resetDb, sessionOf } from './setup.js';
-import { MAJORS } from '../src/lib/plans/catalog.js';
-import { buildProfile, generateEnginePlan } from '../src/lib/plans/engine.js';
+import { COMMON_TASKS, MAJORS } from '../src/lib/plans/catalog.js';
+import { buildProfile, generateEnginePlan, tasksPerWeek } from '../src/lib/plans/engine.js';
 import { checkPlanConsistency, planContentSchema } from '../src/lib/plans/schema.js';
 
 const student = {
@@ -27,6 +27,48 @@ describe('plan engine', () => {
           expect(() => planContentSchema.parse(plan)).not.toThrow();
           expect(checkPlanConsistency(plan, durationWeeks)).toEqual([]);
           expect(JSON.stringify(plan)).not.toMatch(/\{(tool2|tool|track|project)\}/);
+        }
+      }
+    }
+  });
+});
+
+describe('plan engine: realistic weeks', () => {
+  const report = (t) => t.title.startsWith('كتابة التقرير الأسبوعي');
+  const profiles = [
+    ...MAJORS.flatMap((major) => major.tracks.map((track) => ({ profile: buildProfile({ major, track }), majorName: major.name }))),
+    ...['الدعم الفني في مستشفى', 'التدقيق الداخلي', 'الرعاية السريرية'].map((focus) => ({ profile: buildProfile({ focus }), majorName: 'تخصص' })),
+  ];
+
+  test('the number of tasks follows the weekly hours', () => {
+    expect([10, 20, 35, 40, 60].map(tasksPerWeek)).toEqual([2, 2, 4, 4, 5]);
+    for (const hoursPerWeek of [10, 20, 40, 60]) {
+      const plan = generateEnginePlan({ ...profiles[0], durationWeeks: 24, hoursPerWeek });
+      for (const week of plan.weeks) {
+        const n = week.tasks.filter((t) => !report(t)).length;
+        expect(n).toBeLessThanOrEqual(tasksPerWeek(hoursPerWeek));
+        expect(n).toBeGreaterThanOrEqual(Math.min(2, tasksPerWeek(hoursPerWeek) - 1));
+      }
+    }
+  });
+
+  test('one-time tasks appear once and project steps only move forward', () => {
+    const oneOff = new Set([...COMMON_TASKS.orientation, ...COMMON_TASKS.closure]);
+    for (const p of profiles) {
+      for (const durationWeeks of [4, 8, 16, 24, 52]) {
+        for (const hoursPerWeek of [20, 40]) {
+          const plan = generateEnginePlan({ ...p, durationWeeks, hoursPerWeek });
+          const titles = plan.weeks.flatMap((w) => w.tasks.map((t) => t.title));
+          for (const t of oneOff) expect(titles.filter((x) => x === t).length).toBeLessThanOrEqual(1);
+          // Each project step's position in the bank never goes down from week to week.
+          const steps = p.profile.banks.project.map((s) => s.slice(0, 12));
+          const order = plan.weeks
+            .filter((w) => w.phase === 'المشروع التطبيقي')
+            .flatMap((w) => w.tasks.map((t) => steps.findIndex((s) => t.title.startsWith(s))).filter((k) => k >= 0));
+          expect(order).toEqual([...order].sort((a, b) => a - b));
+          expect(new Set(order).size).toBe(order.length);
+          // No task twice in the same week.
+          for (const w of plan.weeks) expect(new Set(w.tasks.map((t) => t.title)).size).toBe(w.tasks.length);
         }
       }
     }
