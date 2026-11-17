@@ -29,7 +29,7 @@ export const companyProfileSchema = z.object({
 const openOpportunity = () => ({ isOpen: true, deadline: { gte: new Date() } });
 
 // Students apply to the contact email, falling back to the company account's email.
-const forDirectory = ({ user, crNumber, userId, logo, ...company }) => ({
+const forDirectory = ({ user, crNumber, userId, logo, reviewStatus, reviewedAt, ...company }) => ({
   ...company,
   email: company.contactEmail ?? user?.email ?? null,
   logoVersion: logoVersion(logo),

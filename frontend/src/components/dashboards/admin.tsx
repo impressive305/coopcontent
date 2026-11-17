@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { api } from "@/lib/api";
 import { useData } from "@/lib/use-data";
-import { ROLE_LABELS, type AdminCompany, type AdminUser } from "../admin/types";
-import { Alert, Button, Card, Empty, StatusBadge, formatDate, useAction } from "../ui";
+import { REVIEW_BADGES, ROLE_LABELS, type AdminCompany, type AdminUser } from "../admin/types";
+import { Alert, Card, Empty, StatusBadge, formatDate } from "../ui";
 
 type Stats = {
   students: number;
@@ -26,7 +25,7 @@ function StatTiles({ stats }: { stats: Stats }) {
     ["الطلاب", stats.students, "/dashboard/manage/users"],
     ["تسجيلات آخر 7 أيام", stats.newUsers, "/dashboard/manage/users"],
     ["جهات معتمدة", stats.companies, "/dashboard/manage/companies"],
-    ["جهات بانتظار الاعتماد", stats.pendingCompanies, "/dashboard/manage/companies"],
+    ["طلبات تسجيل جهات", stats.pendingCompanies, "/dashboard/manage/companies"],
     ["فرص مفتوحة", stats.openOpportunities, "/dashboard/manage/opportunities"],
     ["طلبات قيد المراجعة", stats.applications.PENDING ?? 0, "/dashboard/manage/opportunities"],
     ["متدربون حالياً", stats.activePlacements, "/dashboard/manage/placements"],
@@ -54,16 +53,12 @@ const More = ({ href }: { href: string }) => (
 export function AdminDashboard() {
   const stats = useData<Stats>("/admin/stats");
   const users = useData<AdminUser[]>("/admin/users");
-  const pending = useData<AdminCompany[]>("/admin/companies?verified=false");
-  const action = useAction();
-
-  const verify = (id: number) =>
-    action.run(() => api(`/admin/companies/${id}/verify`, { method: "PATCH" })).then(() => { pending.reload(); stats.reload(); });
+  const pending = useData<AdminCompany[]>("/admin/companies?status=PENDING,CONTACTED");
 
   return (
     <>
       {stats.data && <StatTiles stats={stats.data} />}
-      <Alert>{stats.error || action.error}</Alert>
+      <Alert>{stats.error}</Alert>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card title="أحدث التسجيلات" actions={<More href="/dashboard/manage/users" />}>
@@ -83,16 +78,16 @@ export function AdminDashboard() {
           </ul>
         </Card>
 
-        <Card title="جهات بانتظار الاعتماد" actions={<More href="/dashboard/manage/companies" />}>
-          {pending.data?.length === 0 && <Empty>لا توجد طلبات اعتماد.</Empty>}
-          <ul className="divide-y divide-black/5 text-sm dark:divide-white/10">
+        <Card title="طلبات تسجيل الجهات" description="تُعتمد الجهة بعد مراجعة طلبها والتواصل مع مسؤول التدريب." actions={<More href="/dashboard/manage/companies" />}>
+          {pending.data?.length === 0 && <Empty>لا توجد طلبات بانتظار المراجعة.</Empty>}
+          <ul className="divide-y divide-line text-sm">
             {pending.data?.map((c) => (
               <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
-                <div>
-                  <p className="font-medium">{c.name} <StatusBadge status="UNVERIFIED" /></p>
-                  <p className="text-xs text-gray-500">السجل التجاري <span dir="ltr">{c.crNumber}</span> · {c.city} · {c.sector}{c.user && ` · ${c.user.name}`}</p>
+                <div className="min-w-0">
+                  <p className="flex flex-wrap items-center gap-2 font-medium">{c.name}<StatusBadge status={REVIEW_BADGES[c.reviewStatus]} /></p>
+                  <p className="text-xs text-subtle">{c.user?.name} · {c.city} · {c.sector} · {formatDate(c.createdAt)}</p>
                 </div>
-                <Button disabled={action.busy} onClick={() => verify(c.id)}>اعتماد</Button>
+                <Link href="/dashboard/manage/companies" className="shrink-0 text-sm font-medium text-brand hover:underline">مراجعة</Link>
               </li>
             ))}
           </ul>

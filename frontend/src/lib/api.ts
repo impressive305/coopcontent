@@ -72,7 +72,7 @@ export type User = {
   isActive?: boolean;
   createdAt?: string;
   student?: { major: string; university: string; universityId: string; gpa: string | null; gpaScale: number | null; skills: string[] } | null;
-  company?: { id: number; name: string; verified: boolean } | null;
+  company?: { id: number; name: string; verified: boolean; reviewStatus?: CompanyReview } | null;
 };
 
 export type Opportunity = {
@@ -89,6 +89,8 @@ export type Opportunity = {
   _count?: { applications: number };
 };
 
+export type CompanyReview = "PENDING" | "CONTACTED" | "APPROVED" | "REJECTED";
+
 export type CompanyProfile = {
   id: number;
   name: string;
@@ -102,6 +104,8 @@ export type CompanyProfile = {
   address: string | null;
   majors: string[];
   coopOpen: boolean;
+  // Where the company's sign-up request stands with the training unit.
+  reviewStatus?: CompanyReview;
   // Changes when the logo does; null when the company has none.
   logoVersion?: number | null;
 };

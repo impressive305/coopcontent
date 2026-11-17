@@ -1,4 +1,4 @@
-import type { ApplicationStatus, CompanyProfile, Role, TrainingPlan } from "@/lib/api";
+import type { ApplicationStatus, CompanyProfile, CompanyReview, Role, TrainingPlan } from "@/lib/api";
 
 // Shapes returned by the /admin endpoints (only the fields the UI uses).
 export type AdminUser = {
@@ -55,8 +55,26 @@ export type AdminUserDetails = Omit<AdminUser, "student" | "company"> & {
 
 export type AdminCompany = CompanyProfile & {
   crNumber: string | null;
+  reviewStatus: CompanyReview;
+  reviewedAt: string | null;
+  createdAt: string;
   user: { id: number; name: string; email: string } | null;
   _count: { opportunities: number; placements: number };
+};
+
+export type CompanyNote = { id: number; body: string; createdAt: string; author: { id: number; name: string } | null };
+
+export type AdminCompanyDetails = AdminCompany & {
+  user: { id: number; name: string; email: string; createdAt: string } | null;
+  notes: CompanyNote[];
+};
+
+// Status badges for a company's sign-up request.
+export const REVIEW_BADGES: Record<CompanyReview, string> = {
+  PENDING: "REVIEW_PENDING",
+  CONTACTED: "REVIEW_CONTACTED",
+  APPROVED: "REVIEW_APPROVED",
+  REJECTED: "REVIEW_REJECTED",
 };
 
 export const ROLE_LABELS: Record<Role, string> = { STUDENT: "طالب", COMPANY: "جهة تدريب", SUPERVISOR: "مشرف أكاديمي", ADMIN: "مسؤول" };

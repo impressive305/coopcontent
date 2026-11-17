@@ -1,15 +1,45 @@
 "use client";
 
 import { useState } from "react";
-import { ExternalLink, Plus, Search } from "lucide-react";
+import { ExternalLink, Inbox, Plus, Search } from "lucide-react";
 import { api } from "@/lib/api";
 import { useData } from "@/lib/use-data";
 import { CompanyLogo, LogoUploader } from "../company-logo";
 import { CompanyProfileForm } from "../company-profile-form";
-import { Alert, Button, Card, Empty, StatusBadge, cx, useAction } from "../ui";
-import { confirmDelete, type AdminCompany } from "./types";
+import { Alert, Button, Card, Empty, StatusBadge, cx, formatDate, useAction } from "../ui";
+import { CompanyRequest } from "./company-request";
+import { REVIEW_BADGES, confirmDelete, type AdminCompany } from "./types";
 
-function CompanyRow({ company: c, onChanged }: { company: AdminCompany; onChanged: () => void }) {
+const isOpenRequest = (c: AdminCompany) => c.reviewStatus === "PENDING" || c.reviewStatus === "CONTACTED";
+
+// Sign-up requests waiting on the training unit, oldest first.
+function Requests({ companies, onOpen }: { companies: AdminCompany[]; onOpen: (id: number) => void }) {
+  const open = companies.filter(isOpenRequest).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  return (
+    <Card
+      title={<span className="flex items-center gap-2"><Inbox className="size-5 text-brand" />طلبات تسجيل الجهات ({open.length})</span>}
+      description="راجع كل طلب، وتواصل مع مسؤول التدريب، واستكمل بيانات الجهة، ثم اعتمدها أو ارفضها."
+    >
+      {open.length === 0 ? <Empty>لا توجد طلبات بانتظار المراجعة.</Empty> : (
+        <ul className="divide-y divide-line">
+          {open.map((c) => (
+            <li key={c.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+              <div className="min-w-0">
+                <p className="flex flex-wrap items-center gap-2 font-medium">{c.name}<StatusBadge status={REVIEW_BADGES[c.reviewStatus]} /></p>
+                <p className="text-xs text-subtle">
+                  {c.user?.name} · <span dir="ltr">{c.user?.email}</span> · {c.city} · {c.sector} · قُدّم {formatDate(c.createdAt)}
+                </p>
+              </div>
+              <Button onClick={() => onOpen(c.id)}>مراجعة الطلب</Button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
+function CompanyRow({ company: c, onChanged, onReview }: { company: AdminCompany; onChanged: () => void; onReview: () => void }) {
   const [editing, setEditing] = useState(false);
   const action = useAction();
   const run = (fn: () => Promise<unknown>) => action.run(fn).then((ok) => ok && onChanged());
@@ -26,7 +56,7 @@ function CompanyRow({ company: c, onChanged }: { company: AdminCompany; onChange
         <div className="min-w-0">
           <p className="flex flex-wrap items-center gap-2 font-medium">
             {c.name}
-            {!c.verified && <StatusBadge status="UNVERIFIED" />}
+            {c.reviewStatus !== "APPROVED" && <StatusBadge status={REVIEW_BADGES[c.reviewStatus]} />}
             {c.verified && !c.coopOpen && <StatusBadge status="CLOSED" />}
           </p>
           <p className="text-xs text-gray-500">
@@ -42,7 +72,7 @@ function CompanyRow({ company: c, onChanged }: { company: AdminCompany; onChange
         </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          {!c.verified && <Button disabled={action.busy} onClick={() => run(() => api(`/admin/companies/${c.id}/verify`, { method: "PATCH" }))}>اعتماد</Button>}
+          {c.user && <Button variant={c.verified ? "secondary" : "primary"} onClick={onReview}>{c.verified ? "الطلب والسجل" : "مراجعة الطلب"}</Button>}
           {c.verified && (
             <Button variant="secondary" disabled={action.busy} onClick={() => run(() => api(`/admin/companies/${c.id}`, { method: "PATCH", body: { coopOpen: !c.coopOpen } }))}>
               {c.coopOpen ? "إخفاء عن الطلاب" : "إظهار للطلاب"}
@@ -63,22 +93,24 @@ function CompanyRow({ company: c, onChanged }: { company: AdminCompany; onChange
   );
 }
 
-const FILTERS = [["all", "الكل"], ["pending", "بانتظار الاعتماد"], ["open", "ظاهرة للطلاب"], ["hidden", "مخفية"]] as const;
+const FILTERS = [["all", "الكل"], ["requests", "طلبات مفتوحة"], ["open", "ظاهرة للطلاب"], ["hidden", "مخفية"], ["rejected", "مرفوضة"]] as const;
 
 export function AdminCompanies() {
   const companies = useData<AdminCompany[]>("/admin/companies");
   const [adding, setAdding] = useState(false);
   const [filter, setFilter] = useState<(typeof FILTERS)[number][0]>("all");
   const [query, setQuery] = useState("");
+  const [reviewing, setReviewing] = useState<number | null>(null);
 
   const q = query.trim().toLowerCase();
   const shown = (companies.data ?? []).filter((c) =>
-    (filter === "all" || (filter === "pending" && !c.verified) || (filter === "open" && c.verified && c.coopOpen) || (filter === "hidden" && c.verified && !c.coopOpen)) &&
+    (filter === "all" || (filter === "requests" && isOpenRequest(c)) || (filter === "open" && c.verified && c.coopOpen) || (filter === "hidden" && c.verified && !c.coopOpen) || (filter === "rejected" && c.reviewStatus === "REJECTED")) &&
     (!q || [c.name, c.city, c.sector].some((t) => t.toLowerCase().includes(q))));
-  const pending = companies.data?.filter((c) => !c.verified).length ?? 0;
+  const pending = companies.data?.filter(isOpenRequest).length ?? 0;
 
   return (
     <>
+      {companies.data && <Requests companies={companies.data} onOpen={setReviewing} />}
       <Card
         title="جهات التدريب"
         actions={<Button onClick={() => setAdding(!adding)} className="flex items-center gap-2"><Plus className="size-4" />{adding ? "إغلاق" : "إضافة جهة"}</Button>}
@@ -95,7 +127,7 @@ export function AdminCompanies() {
           <div role="tablist" className="flex flex-wrap gap-1 rounded-xl bg-black/5 p-1 text-sm dark:bg-white/10">
             {FILTERS.map(([key, label]) => (
               <button key={key} role="tab" aria-selected={filter === key} onClick={() => setFilter(key)} className={cx("rounded-lg px-3 py-1.5", filter === key && "bg-white font-semibold shadow-sm dark:bg-white/15")}>
-                {label}{key === "pending" && pending > 0 && ` (${pending})`}
+                {label}{key === "requests" && pending > 0 && ` (${pending})`}
               </button>
             ))}
           </div>
@@ -111,9 +143,10 @@ export function AdminCompanies() {
         <Alert>{companies.error}</Alert>
         {companies.data && shown.length === 0 && <Empty>لا توجد جهات مطابقة.</Empty>}
         <ul className="divide-y divide-black/5 dark:divide-white/10">
-          {shown.map((c) => <CompanyRow key={c.id} company={c} onChanged={companies.reload} />)}
+          {shown.map((c) => <CompanyRow key={c.id} company={c} onChanged={companies.reload} onReview={() => setReviewing(c.id)} />)}
         </ul>
       </Card>
+      {reviewing !== null && <CompanyRequest id={reviewing} onChanged={companies.reload} onClose={() => setReviewing(null)} />}
     </>
   );
 }

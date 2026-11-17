@@ -37,6 +37,15 @@ enum PlanSource {
   MANUAL
 }
 
+// A company's sign-up request: the training unit contacts the company outside
+// the platform, completes its details, then approves or rejects it.
+enum CompanyReview {
+  PENDING
+  CONTACTED
+  APPROVED
+  REJECTED
+}
+
 enum ReportStatus {
   SUBMITTED
   APPROVED
@@ -55,7 +64,8 @@ model User {
 
   student         Student?
   company         Company?
-  supervisedUnits Placement[] @relation("SupervisorPlacements")
+  supervisedUnits Placement[]   @relation("SupervisorPlacements")
+  companyNotes    CompanyNote[]
 
   @@map("users")
 }
@@ -83,28 +93,48 @@ model Student {
 // A training organization. Companies that register have a user account; the
 // admin can also add directory-only companies (no account, no CR number).
 model Company {
-  id           Int      @id @default(autoincrement())
-  userId       Int?     @unique @map("user_id")
+  id           Int           @id @default(autoincrement())
+  userId       Int?          @unique @map("user_id")
   name         String
-  crNumber     String?  @unique @map("cr_number")
+  crNumber     String?       @unique @map("cr_number")
   city         String
   sector       String
-  verified     Boolean  @default(false)
+  // true only once the request is APPROVED; set together with reviewStatus.
+  verified     Boolean       @default(false)
+  reviewStatus CompanyReview @default(PENDING) @map("review_status")
+  reviewedAt   DateTime?     @map("reviewed_at")
+  createdAt    DateTime      @default(now()) @map("created_at")
   // Directory profile shown to students, who apply directly to the company.
   description  String?
   website      String?
-  contactEmail String?  @map("contact_email")
+  contactEmail String?       @map("contact_email")
   phone        String?
   address      String?
-  majors       String[] @default([])
-  coopOpen     Boolean  @default(true) @map("coop_open")
+  majors       String[]      @default([])
+  coopOpen     Boolean       @default(true) @map("coop_open")
 
   user          User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
   logo          CompanyLogo?
+  notes         CompanyNote[]
   opportunities Opportunity[]
   placements    Placement[]
 
   @@map("companies")
+}
+
+// The training unit's internal log of contact with a company. Never shown to the company.
+model CompanyNote {
+  id        Int      @id @default(autoincrement())
+  companyId Int      @map("company_id")
+  authorId  Int?     @map("author_id")
+  body      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  author  User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@map("company_notes")
 }
 
 // Kept apart from Company so logo bytes never ride along in company queries.

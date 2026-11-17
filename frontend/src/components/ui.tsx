@@ -80,6 +80,10 @@ const statusLabels: Record<string, [string, keyof typeof tones]> = {
   CLOSED: ["التدريب مغلق", "gray"],
   SUSPENDED: ["موقوف", "red"],
   UNVERIFIED: ["بانتظار الاعتماد", "amber"],
+  REVIEW_PENDING: ["طلب جديد", "amber"],
+  REVIEW_CONTACTED: ["تم التواصل", "blue"],
+  REVIEW_APPROVED: ["معتمدة", "green"],
+  REVIEW_REJECTED: ["مرفوض", "red"],
 };
 
 export function StatusBadge({ status }: { status: string }) {

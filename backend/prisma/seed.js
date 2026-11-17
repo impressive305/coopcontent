@@ -27,7 +27,7 @@ await upsertUser('student@coopconnect.sa', {
 const companyUser = await upsertUser('company@coopconnect.sa', {
   name: 'خالد الدوسري',
   role: 'COMPANY',
-  company: { create: { name: 'جهة تجريبية (حساب عرض)', crNumber: '1010123456', city: 'الرياض', sector: 'تقنية المعلومات', verified: true } },
+  company: { create: { name: 'جهة تجريبية (حساب عرض)', crNumber: '1010123456', city: 'الرياض', sector: 'تقنية المعلومات', verified: true, reviewStatus: 'APPROVED' } },
 });
 
 const company = await prisma.company.update({
@@ -50,7 +50,7 @@ const company = await prisma.company.update({
 // Logos go through the same validation as uploads.
 for (const { logo, ...c } of COOP_COMPANIES) {
   const existing = await prisma.company.findFirst({ where: { name: c.name }, include: { logo: { select: { companyId: true } } } });
-  const company = existing ?? (await prisma.company.create({ data: { ...c, verified: true } }));
+  const company = existing ?? (await prisma.company.create({ data: { ...c, verified: true, reviewStatus: 'APPROVED', reviewedAt: new Date() } }));
   if (logo && !existing?.logo) {
     const image = (await readFile(new URL(`./logos/${logo}`, import.meta.url))).toString('base64');
     await prisma.companyLogo.create({ data: { companyId: company.id, ...parseLogo(image) } });

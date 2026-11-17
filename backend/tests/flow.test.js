@@ -387,3 +387,52 @@ describe('company logos', () => {
     expect((await api().get('/api/logos/abc')).status).toBe(404);
   });
 });
+
+describe('company registration requests', () => {
+  test('a request is reviewed, noted, completed and then approved or rejected by the admin only', async () => {
+    const admin = await createStaff('ADMIN', 'admin@example.com');
+    const adminId = (await api().get('/api/auth/me').set(auth(admin))).body.id;
+    const c = sessionOf(await api().post('/api/auth/register/company').send(company));
+    const s = sessionOf(await api().post('/api/auth/register/student').send(student));
+    const companyId = (await prisma.company.findFirst()).id;
+
+    // A new request waits: hidden from students, cannot post, counted for the admin.
+    expect((await api().get('/api/companies/me').set(auth(c))).body).toMatchObject({ reviewStatus: 'PENDING', verified: false, crNumber: null });
+    expect((await api().get('/api/companies').set(auth(s))).body).toEqual([]);
+    expect((await api().post('/api/opportunities').set(auth(c)).send(opportunity)).status).toBe(403);
+    expect((await api().get('/api/admin/stats').set(auth(admin))).body.pendingCompanies).toBe(1);
+    expect((await api().get('/api/admin/companies?status=PENDING,CONTACTED').set(auth(admin))).body).toHaveLength(1);
+
+    // Only the admin moves a request or reads its notes.
+    expect((await api().patch(`/api/admin/companies/${companyId}/review`).set(auth(c)).send({ status: 'APPROVED' })).status).toBe(403);
+    expect((await api().get(`/api/admin/companies/${companyId}`).set(auth(c))).status).toBe(403);
+
+    const contacted = await api().patch(`/api/admin/companies/${companyId}/review`).set(auth(admin)).send({ status: 'CONTACTED', note: 'Emailed for CR and website' });
+    expect(contacted.body).toMatchObject({ reviewStatus: 'CONTACTED', verified: false });
+    await api().post(`/api/admin/companies/${companyId}/notes`).set(auth(admin)).send({ body: 'CR received' });
+    const details = (await api().get(`/api/admin/companies/${companyId}`).set(auth(admin))).body;
+    expect(details.notes.map((n) => n.body)).toEqual(['CR received', 'Emailed for CR and website']);
+    expect(details.notes[0].author).toMatchObject({ id: adminId });
+    expect(details.user).toMatchObject({ name: company.name, email: company.email });
+    const own = (await api().get('/api/companies/me').set(auth(c))).body;
+    expect(own.reviewStatus).toBe('CONTACTED');
+    expect(own.notes).toBeUndefined();
+
+    // The admin completes the details; approval cannot be set through an edit.
+    expect((await api().patch(`/api/admin/companies/${companyId}`).set(auth(admin)).send({ crNumber: '12' })).status).toBe(400);
+    expect((await api().patch(`/api/admin/companies/${companyId}`).set(auth(admin)).send({ verified: true })).status).toBe(400);
+    const completed = await api().patch(`/api/admin/companies/${companyId}`).set(auth(admin)).send({ crNumber: '1010123456', website: 'https://example.com' });
+    expect(completed.body).toMatchObject({ crNumber: '1010123456', verified: false });
+
+    await api().patch(`/api/admin/companies/${companyId}/review`).set(auth(admin)).send({ status: 'APPROVED' });
+    expect((await api().get('/api/companies').set(auth(s))).body).toHaveLength(1);
+    expect((await api().post('/api/opportunities').set(auth(c)).send(opportunity)).status).toBe(201);
+    expect((await api().get('/api/admin/stats').set(auth(admin))).body.pendingCompanies).toBe(0);
+
+    // Rejecting takes the company out of the directory and stops new posts.
+    const rejected = await api().patch(`/api/admin/companies/${companyId}/review`).set(auth(admin)).send({ status: 'REJECTED', note: 'Not a training organization' });
+    expect(rejected.body).toMatchObject({ reviewStatus: 'REJECTED', verified: false });
+    expect((await api().get('/api/companies').set(auth(s))).body).toEqual([]);
+    expect((await api().post('/api/opportunities').set(auth(c)).send(opportunity)).status).toBe(403);
+  });
+});

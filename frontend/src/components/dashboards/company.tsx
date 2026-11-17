@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { api, placementTitle, type Application, type CompanyProfile, type Opportunity, type Placement, type User } from "@/lib/api";
+import { Check } from "lucide-react";
+import { api, placementTitle, type Application, type CompanyProfile, type CompanyReview, type Opportunity, type Placement, type User } from "@/lib/api";
 import { LogoUploader } from "../company-logo";
 import { CompanyProfileForm } from "../company-profile-form";
 import { useData } from "@/lib/use-data";
-import { Alert, Button, Card, Empty, Field, StatusBadge, formValues, formatDate, useAction } from "../ui";
+import { Alert, Button, Card, Empty, Field, StatusBadge, cx, formValues, formatDate, useAction } from "../ui";
 
 function NewOpportunityForm({ onCreated }: { onCreated: () => void }) {
   const { busy, error, run } = useAction();
@@ -76,6 +77,42 @@ function Applicants({ opportunityId, onDecided }: { opportunityId: number; onDec
   );
 }
 
+// What a company sees until its sign-up request is approved.
+function RequestStatus({ name, status }: { name: string; status: CompanyReview }) {
+  if (status === "REJECTED") {
+    return (
+      <Card title="لم يُعتمد طلب التسجيل">
+        <p className="text-sm leading-7 text-subtle">
+          راجعت وحدة التدريب طلب تسجيل {name} ولم يُعتمد. للاستفسار أو لإعادة النظر، تواصلوا مع وحدة التدريب.
+        </p>
+      </Card>
+    );
+  }
+  const steps = [
+    { title: "استلام الطلب", text: "وصل طلبكم إلى وحدة التدريب.", done: true },
+    { title: "التواصل واستكمال البيانات", text: "يتواصل معكم فريق وحدة التدريب على البريد المسجّل لاستكمال بيانات الجهة، مثل السجل التجاري.", done: status === "CONTACTED" },
+    { title: "اعتماد الجهة", text: "بعد الاعتماد تظهر الجهة للطلاب، ويمكنكم نشر الفرص واستقبال الطلبات.", done: false },
+  ];
+  const current = steps.findIndex((s) => !s.done);
+  return (
+    <Card title="طلب التسجيل قيد المراجعة" description={`شكراً لتسجيل ${name}. هذه مراحل طلبكم:`}>
+      <ol className="space-y-5">
+        {steps.map((s, i) => (
+          <li key={s.title} className="flex gap-4">
+            <span className={cx("grid size-8 shrink-0 place-items-center rounded-full text-xs font-bold", s.done ? "bg-brand text-white" : i === current ? "bg-surface text-brand ring-2 ring-brand" : "bg-muted text-subtle")}>
+              {s.done ? <Check className="size-4" /> : i + 1}
+            </span>
+            <span>
+              <span className={cx("block text-sm font-semibold", !s.done && i !== current && "text-subtle")}>{s.title}</span>
+              <span className="mt-0.5 block text-sm leading-6 text-subtle">{s.text}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+    </Card>
+  );
+}
+
 function ProfileCard() {
   const { data, error, reload } = useData<CompanyProfile>("/companies/me");
   return (
@@ -98,16 +135,7 @@ export function CompanyDashboard({ user }: { user: User }) {
   const [expanded, setExpanded] = useState<number | null>(null);
   const toggle = useAction();
 
-  if (!user.company?.verified) {
-    return (
-      <>
-        <Card title="الحساب قيد المراجعة">
-          <Alert tone="amber">تم استلام تسجيل {user.company?.name}. ستظهر الجهة للطلاب ويمكنكم نشر الفرص بعد اعتماد مسؤول النظام للسجل التجاري.</Alert>
-        </Card>
-        <ProfileCard />
-      </>
-    );
-  }
+  if (!user.company?.verified) return <RequestStatus name={user.company?.name ?? ""} status={user.company?.reviewStatus ?? "PENDING"} />;
 
   const setOpen = (o: Opportunity) =>
     toggle.run(() => api(`/opportunities/${o.id}`, { method: "PATCH", body: { isOpen: !o.isOpen } })).then(() => opportunities.reload());

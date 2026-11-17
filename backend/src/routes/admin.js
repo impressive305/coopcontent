@@ -171,10 +171,18 @@ router.get('/supervisors', async (_req, res) => {
 
 // ---------- Companies ----------
 
-router.get('/companies', async (req, res) => {
-  const verified = req.query.verified === undefined ? undefined : req.query.verified === 'true';
+const REVIEW_STATUSES = ['PENDING', 'CONTACTED', 'APPROVED', 'REJECTED'];
+// Requests still waiting on the training unit.
+const OPEN_REQUESTS = ['PENDING', 'CONTACTED'];
+
+router.get('/companies', validate(z.object({
+  verified: z.enum(['true', 'false']).optional(),
+  status: z.string().optional(),
+}), 'query'), async (req, res) => {
+  const { verified, status } = req.validQuery;
+  const statuses = status?.split(',').filter((s) => REVIEW_STATUSES.includes(s));
   const companies = await prisma.company.findMany({
-    where: { verified },
+    where: { verified: verified === undefined ? undefined : verified === 'true', reviewStatus: statuses?.length ? { in: statuses } : undefined },
     include: {
       user: { select: { id: true, name: true, email: true } },
       _count: { select: { opportunities: true, placements: true } },
@@ -185,15 +193,62 @@ router.get('/companies', async (req, res) => {
   res.json(companies.map(({ logo, ...c }) => ({ ...c, logoVersion: logoVersion(logo) })));
 });
 
-// Directory-only company: no account, verified by the admin who adds it.
+// Directory-only company: no account, approved by the admin who adds it.
 router.post('/companies', validate(companyProfileSchema), async (req, res) => {
-  const company = await prisma.company.create({ data: { ...req.body, verified: true } });
+  const company = await prisma.company.create({ data: { ...req.body, verified: true, reviewStatus: 'APPROVED', reviewedAt: new Date() } });
   res.status(201).json(company);
 });
 
-router.patch('/companies/:id', validate(companyProfileSchema.extend({ verified: z.boolean() }).partial()), async (req, res) => {
+// A request with its contact, details and the training unit's notes.
+router.get('/companies/:id', async (req, res) => {
+  const company = await prisma.company.findUnique({
+    where: { id: id(req) },
+    include: {
+      user: { select: { id: true, name: true, email: true, createdAt: true } },
+      notes: { include: { author: { select: { id: true, name: true } } }, orderBy: { createdAt: 'desc' } },
+      _count: { select: { opportunities: true, placements: true } },
+      ...logoVersionSelect,
+    },
+  });
+  if (!company) throw notFound('Company');
+  const { logo, ...rest } = company;
+  res.json({ ...rest, logoVersion: logoVersion(logo) });
+});
+
+// Details the admin completes while reviewing, including the commercial
+// registration. Approval is not set here; it goes through /review.
+router.patch('/companies/:id', validate(companyProfileSchema.extend({
+  crNumber: z.string().trim().regex(/^\d{10}$/, 'Commercial registration must be 10 digits').nullable(),
+}).partial().strict()), async (req, res) => {
   const company = await prisma.company.update({ where: { id: id(req) }, data: req.body });
   res.json(company);
+});
+
+const noteBody = z.string().trim().min(1).max(2000);
+
+// Moves a request along its review; `verified` follows the status so they never disagree.
+const review = (companyId, status, note, authorId) =>
+  prisma.$transaction(async (tx) => {
+    const company = await tx.company.update({
+      where: { id: companyId },
+      data: { reviewStatus: status, verified: status === 'APPROVED', reviewedAt: ['APPROVED', 'REJECTED'].includes(status) ? new Date() : null },
+    });
+    if (note) await tx.companyNote.create({ data: { companyId, authorId, body: note } });
+    return company;
+  });
+
+router.patch('/companies/:id/review', validate(z.strictObject({ status: z.enum(REVIEW_STATUSES), note: noteBody.optional() })), async (req, res) => {
+  res.json(await review(id(req), req.body.status, req.body.note, req.user.id));
+});
+
+router.post('/companies/:id/notes', validate(z.strictObject({ body: noteBody })), async (req, res) => {
+  const company = await prisma.company.findUnique({ where: { id: id(req) } });
+  if (!company) throw notFound('Company');
+  const note = await prisma.companyNote.create({
+    data: { companyId: company.id, authorId: req.user.id, body: req.body.body },
+    include: { author: { select: { id: true, name: true } } },
+  });
+  res.status(201).json(note);
 });
 
 router.put('/companies/:id/logo', validate(logoUploadSchema), async (req, res) => {
@@ -208,9 +263,9 @@ router.delete('/companies/:id/logo', async (req, res) => {
   res.status(204).end();
 });
 
+// Kept for older clients; same as a review to APPROVED.
 router.patch('/companies/:id/verify', async (req, res) => {
-  const company = await prisma.company.update({ where: { id: id(req) }, data: { verified: true } });
-  res.json(company);
+  res.json(await review(id(req), 'APPROVED', null, req.user.id));
 });
 
 // A registered company is removed with its account, so no company login is left without a profile.
@@ -313,7 +368,7 @@ router.get('/stats', async (_req, res) => {
       prisma.user.count({ where: { createdAt: { gte: weekAgo } } }),
       prisma.user.count({ where: { isActive: false } }),
       prisma.company.count({ where: { verified: true } }),
-      prisma.company.count({ where: { verified: false } }),
+      prisma.company.count({ where: { reviewStatus: { in: OPEN_REQUESTS } } }),
       prisma.opportunity.count({ where: { isOpen: true } }),
       prisma.application.groupBy({ by: ['status'], _count: true }),
       prisma.placement.count({ where: { status: 'ACTIVE' } }),

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import type { Role, User } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { useData } from "@/lib/use-data";
 import { ThemeToggle } from "../theme-toggle";
 import { cx } from "../ui";
 
@@ -54,6 +55,9 @@ function Sidebar({ user, onNavigate }: { user: User; onNavigate?: () => void }) 
   const pathname = usePathname();
   const { logout } = useAuth();
   const router = useRouter();
+  // The admin sees how many company sign-up requests are waiting.
+  const stats = useData<{ pendingCompanies: number }>(user.role === "ADMIN" ? "/admin/stats" : null);
+  const counts: Record<string, number | undefined> = { "/dashboard/manage/companies": stats.data?.pendingCompanies };
 
   return (
     <div className="flex h-full flex-col bg-gradient-to-b from-[#0b2f2c] to-[#071d1b] text-teal-50">
@@ -68,6 +72,7 @@ function Sidebar({ user, onNavigate }: { user: User; onNavigate?: () => void }) 
             <ul className="space-y-1">
               {group.items.map(({ href, label, icon: Icon, badge }) => {
                 const active = isActive(href, pathname);
+                const count = counts[href];
                 return (
                   <li key={href}>
                     <Link
@@ -83,6 +88,7 @@ function Sidebar({ user, onNavigate }: { user: User; onNavigate?: () => void }) 
                       <Icon className="size-[18px]" />
                       <span className="flex-1">{label}</span>
                       {badge && <span className="rounded-full bg-teal-400/20 px-2 py-0.5 text-[10px] font-semibold text-teal-100">{badge}</span>}
+                      {!!count && <span aria-label={`${count} بانتظار المراجعة`} className="grid min-w-5 place-items-center rounded-full bg-amber-400 px-1.5 text-[11px] font-bold text-amber-950">{count}</span>}
                     </Link>
                   </li>
                 );
