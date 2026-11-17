@@ -1,171 +1,103 @@
 "use client";
 
-import { useState } from "react";
-import { api, type CompanyProfile, type Placement } from "@/lib/api";
-import { CompanyProfileForm } from "../company-profile-form";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import { api } from "@/lib/api";
 import { useData } from "@/lib/use-data";
-import { Alert, Button, Card, Empty, Field, StatusBadge, formValues, formatDate, useAction } from "../ui";
+import { ROLE_LABELS, type AdminCompany, type AdminUser } from "../admin/types";
+import { Alert, Button, Card, Empty, StatusBadge, formatDate, useAction } from "../ui";
 
 type Stats = {
   students: number;
+  users: Partial<Record<"STUDENT" | "COMPANY" | "SUPERVISOR" | "ADMIN", number>>;
+  newUsers: number;
+  suspended: number;
   companies: number;
+  pendingCompanies: number;
   openOpportunities: number;
   applications: Partial<Record<"PENDING" | "ACCEPTED" | "REJECTED" | "WITHDRAWN", number>>;
   activePlacements: number;
   pendingReports: number;
+  activePlans: number;
 };
-type PendingCompany = { id: number; name: string; crNumber: string | null; city: string; sector: string; user: { name: string; email: string } | null };
-type AdminCompany = CompanyProfile & { user: { name: string; email: string } | null };
-type Supervisor = { id: number; name: string; email: string; _count: { supervisedUnits: number } };
 
 function StatTiles({ stats }: { stats: Stats }) {
-  const tiles = [
-    ["الطلاب", stats.students],
-    ["جهات معتمدة", stats.companies],
-    ["فرص مفتوحة", stats.openOpportunities],
-    ["طلبات قيد المراجعة", stats.applications.PENDING ?? 0],
-    ["متدربون حالياً", stats.activePlacements],
-    ["تقارير بانتظار المراجعة", stats.pendingReports],
-  ] as const;
+  const tiles: [string, number, string][] = [
+    ["الطلاب", stats.students, "/dashboard/manage/users"],
+    ["تسجيلات آخر 7 أيام", stats.newUsers, "/dashboard/manage/users"],
+    ["جهات معتمدة", stats.companies, "/dashboard/manage/companies"],
+    ["جهات بانتظار الاعتماد", stats.pendingCompanies, "/dashboard/manage/companies"],
+    ["فرص مفتوحة", stats.openOpportunities, "/dashboard/manage/opportunities"],
+    ["طلبات قيد المراجعة", stats.applications.PENDING ?? 0, "/dashboard/manage/opportunities"],
+    ["متدربون حالياً", stats.activePlacements, "/dashboard/manage/placements"],
+    ["تقارير بانتظار المراجعة", stats.pendingReports, "/dashboard/manage/placements"],
+    ["خطط تدريب نشطة", stats.activePlans, "/dashboard/manage/users"],
+    ["حسابات موقوفة", stats.suspended, "/dashboard/manage/users"],
+    ["حسابات الجهات", stats.users.COMPANY ?? 0, "/dashboard/manage/users"],
+  ];
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-      {tiles.map(([label, value]) => (
-        <div key={label} className="rounded-xl border border-black/10 bg-white p-4 dark:border-white/10 dark:bg-white/5">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      {tiles.map(([label, value, href]) => (
+        <Link key={label} href={href} className="rounded-xl border border-black/10 bg-white p-4 transition hover:border-brand dark:border-white/10 dark:bg-white/5">
           <p className="text-2xl font-bold">{value}</p>
           <p className="text-xs text-gray-500">{label}</p>
-        </div>
+        </Link>
       ))}
     </div>
   );
 }
 
-function CompanyDirectory({ onChange }: { onChange: () => void }) {
-  const companies = useData<AdminCompany[]>("/admin/companies?verified=true");
-  const [editing, setEditing] = useState<number | "new" | null>(null);
-  const saved = () => { setEditing(null); companies.reload(); onChange(); };
-
-  return (
-    <Card
-      title="دليل جهات التدريب"
-      actions={editing !== "new" && <Button onClick={() => setEditing("new")}>إضافة جهة</Button>}
-    >
-      <p className="mb-4 text-sm text-gray-500">الجهات المعتمدة التي فتحت التدريب التعاوني تظهر للطلاب ويتواصلون معها مباشرة. يمكنك إضافة جهة لم تسجّل في المنصة.</p>
-      <Alert>{companies.error}</Alert>
-      {editing === "new" && (
-        <div className="mb-6 rounded-xl border border-black/10 p-4 dark:border-white/10">
-          <CompanyProfileForm submitLabel="إضافة الجهة" onSubmit={(body) => api("/admin/companies", { method: "POST", body }).then(saved)} />
-          <Button variant="secondary" className="mt-3" onClick={() => setEditing(null)}>إلغاء</Button>
-        </div>
-      )}
-      {companies.data?.length === 0 && <Empty>لا توجد جهات معتمدة بعد.</Empty>}
-      <ul className="divide-y divide-black/5 text-sm dark:divide-white/10">
-        {companies.data?.map((c) => (
-          <li key={c.id} className="py-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <p className="font-medium">{c.name} {!c.coopOpen && <StatusBadge status="CLOSED" />}</p>
-                <p className="text-gray-500">{c.city} · {c.sector} · {c.user ? "حساب مسجّل" : "أضافها المسؤول"}{c.contactEmail && <> · <span dir="ltr">{c.contactEmail}</span></>}</p>
-              </div>
-              <Button variant="secondary" onClick={() => setEditing(editing === c.id ? null : c.id)}>{editing === c.id ? "إغلاق" : "تعديل"}</Button>
-            </div>
-            {editing === c.id && (
-              <div className="mt-3 rounded-xl border border-black/10 p-4 dark:border-white/10">
-                <CompanyProfileForm initial={c} submitLabel="حفظ" onSubmit={(body) => api(`/admin/companies/${c.id}`, { method: "PATCH", body }).then(saved)} />
-              </div>
-            )}
-          </li>
-        ))}
-      </ul>
-    </Card>
-  );
-}
+const More = ({ href }: { href: string }) => (
+  <Link href={href} className="flex items-center gap-1 text-sm text-brand hover:underline">إدارة <ArrowLeft className="size-4" /></Link>
+);
 
 export function AdminDashboard() {
   const stats = useData<Stats>("/admin/stats");
-  const companies = useData<PendingCompany[]>("/admin/companies?verified=false");
-  const supervisors = useData<Supervisor[]>("/admin/supervisors");
-  const placements = useData<Placement[]>("/placements");
+  const users = useData<AdminUser[]>("/admin/users");
+  const pending = useData<AdminCompany[]>("/admin/companies?verified=false");
   const action = useAction();
 
   const verify = (id: number) =>
-    action.run(() => api(`/admin/companies/${id}/verify`, { method: "PATCH" })).then(() => { companies.reload(); stats.reload(); });
-
-  const assign = (placementId: number, supervisorId: string) =>
-    supervisorId &&
-    action.run(() => api(`/placements/${placementId}/supervisor`, { method: "PATCH", body: { supervisorId: Number(supervisorId) } }))
-      .then(() => { placements.reload(); supervisors.reload(); });
-
-  const addSupervisor = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    if (await action.run(() => api("/admin/supervisors", { method: "POST", body: formValues(form) }))) {
-      form.reset();
-      supervisors.reload();
-    }
-  };
+    action.run(() => api(`/admin/companies/${id}/verify`, { method: "PATCH" })).then(() => { pending.reload(); stats.reload(); });
 
   return (
     <>
       {stats.data && <StatTiles stats={stats.data} />}
-      <Alert>{action.error}</Alert>
+      <Alert>{stats.error || action.error}</Alert>
 
-      <Card title="جهات بانتظار الاعتماد">
-        {companies.data?.length === 0 && <Empty>لا توجد طلبات اعتماد.</Empty>}
-        <ul className="divide-y divide-black/5 text-sm dark:divide-white/10">
-          {companies.data?.map((c) => (
-            <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
-              <div>
-                <p className="font-medium">{c.name}</p>
-                <p className="text-gray-500">السجل التجاري <span dir="ltr">{c.crNumber}</span> · {c.city} · {c.sector}{c.user && ` · ${c.user.name}`}</p>
-              </div>
-              <Button disabled={action.busy} onClick={() => verify(c.id)}>اعتماد</Button>
-            </li>
-          ))}
-        </ul>
-      </Card>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card title="أحدث التسجيلات" actions={<More href="/dashboard/manage/users" />}>
+          {users.data?.length === 0 && <Empty>لا توجد حسابات بعد.</Empty>}
+          <ul className="divide-y divide-black/5 text-sm dark:divide-white/10">
+            {users.data?.slice(0, 8).map((u) => (
+              <li key={u.id} className="flex items-center justify-between gap-3 py-2.5">
+                <span className="min-w-0">
+                  <span className="block truncate font-medium">{u.name}</span>
+                  <span className="block truncate text-xs text-gray-500">
+                    {ROLE_LABELS[u.role]}{u.student && ` · ${u.student.university}`}{u.company && ` · ${u.company.name}`}
+                  </span>
+                </span>
+                <span className="shrink-0 text-xs text-gray-500">{formatDate(u.createdAt)}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
 
-      <CompanyDirectory onChange={stats.reload} />
-
-      <Card title="إسناد المشرفين">
-        {placements.data?.length === 0 && <Empty>لا توجد حالات تدريب بعد.</Empty>}
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="text-start text-gray-500">
-              <tr><th className="py-2 text-start font-medium">الطالب</th><th className="text-start font-medium">الجهة</th><th className="text-start font-medium">البدء</th><th className="text-start font-medium">الحالة</th><th className="text-start font-medium">المشرف</th></tr>
-            </thead>
-            <tbody className="divide-y divide-black/5 dark:divide-white/10">
-              {placements.data?.map((p) => (
-                <tr key={p.id}>
-                  <td className="py-2">{p.student.user.name}</td>
-                  <td>{p.company.name}</td>
-                  <td>{formatDate(p.startDate)}</td>
-                  <td><StatusBadge status={p.status} /></td>
-                  <td>
-                    <select defaultValue={p.supervisor?.id ?? ""} onChange={(e) => assign(p.id, e.target.value)} className="rounded-lg border border-black/15 bg-transparent px-2 py-1 dark:border-white/20">
-                      <option value="" disabled>اختر مشرفاً</option>
-                      {supervisors.data?.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-
-      <Card title="المشرفون الأكاديميون">
-        <ul className="mb-4 divide-y divide-black/5 text-sm dark:divide-white/10">
-          {supervisors.data?.map((s) => (
-            <li key={s.id} className="flex justify-between py-2"><span>{s.name} <span className="text-gray-500" dir="ltr">{s.email}</span></span><span className="text-gray-500">{s._count.supervisedUnits} طلاب</span></li>
-          ))}
-        </ul>
-        <form onSubmit={addSupervisor} className="grid gap-3 sm:grid-cols-4 sm:items-end">
-          <Field label="الاسم" name="name" required />
-          <Field label="البريد" name="email" type="email" required dir="ltr" />
-          <Field label="كلمة مرور مؤقتة" name="password" type="password" minLength={8} required dir="ltr" />
-          <Button type="submit" disabled={action.busy}>إضافة مشرف</Button>
-        </form>
-      </Card>
+        <Card title="جهات بانتظار الاعتماد" actions={<More href="/dashboard/manage/companies" />}>
+          {pending.data?.length === 0 && <Empty>لا توجد طلبات اعتماد.</Empty>}
+          <ul className="divide-y divide-black/5 text-sm dark:divide-white/10">
+            {pending.data?.map((c) => (
+              <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
+                <div>
+                  <p className="font-medium">{c.name} <StatusBadge status="UNVERIFIED" /></p>
+                  <p className="text-xs text-gray-500">السجل التجاري <span dir="ltr">{c.crNumber}</span> · {c.city} · {c.sector}{c.user && ` · ${c.user.name}`}</p>
+                </div>
+                <Button disabled={action.busy} onClick={() => verify(c.id)}>اعتماد</Button>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      </div>
     </>
   );
 }

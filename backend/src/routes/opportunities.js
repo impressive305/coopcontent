@@ -9,7 +9,7 @@ import { validate } from '../middleware/validate.js';
 const router = Router();
 router.use(authenticate);
 
-const opportunitySchema = z.object({
+export const opportunitySchema = z.object({
   title: z.string().trim().min(3),
   description: z.string().trim().min(10),
   major: z.string().trim().min(2),

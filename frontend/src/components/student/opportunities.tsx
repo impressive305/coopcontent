@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Building2, CalendarCheck, ExternalLink, Globe, Mail, MapPin, Phone, Search, Send, Users, X } from "lucide-react";
+import { useState } from "react";
+import { CalendarCheck, ExternalLink, Globe, Mail, MapPin, Phone, Search, Send } from "lucide-react";
 import { api, type Application, type DirectoryCompany, type Opportunity, type Placement } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useData } from "@/lib/use-data";
-import { Alert, Button, Card, Empty, Field, Select, StatusBadge, formatDate, useAction } from "../ui";
+import { CompanyLogo } from "../company-logo";
+import { Alert, Button, Card, Drawer, Empty, Field, Select, StatusBadge, formatDate, inputClass, useAction } from "../ui";
 
 const mapsUrl = (c: DirectoryCompany) =>
   `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([c.name, c.address, c.city].filter(Boolean).join(" "))}`;
@@ -13,7 +14,7 @@ const mapsUrl = (c: DirectoryCompany) =>
 const applyMailto = (c: DirectoryCompany, studentName?: string) =>
   `mailto:${c.email}?subject=${encodeURIComponent(`طلب تدريب تعاوني${studentName ? ` - ${studentName}` : ""}`)}`;
 
-const linkClass = "flex items-center gap-2 rounded-lg border border-black/10 px-3 py-2 text-sm hover:border-brand hover:text-brand dark:border-white/15";
+const linkClass = "flex items-center gap-2 rounded-xl border border-line px-3 py-2.5 text-sm transition hover:border-brand hover:text-brand";
 
 function InPlatformOpportunity({ opp, applied, canApply, onApplied }: { opp: Opportunity; applied?: Application["status"]; canApply: boolean; onApplied: () => void }) {
   const [open, setOpen] = useState(false);
@@ -23,13 +24,13 @@ function InPlatformOpportunity({ opp, applied, canApply, onApplied }: { opp: Opp
     run(() => api("/applications", { method: "POST", body: { opportunityId: opp.id, coverLetter: coverLetter || undefined } })).then((ok) => ok && onApplied());
 
   return (
-    <li className="space-y-2 rounded-lg border border-black/10 p-3 dark:border-white/10">
+    <li className="space-y-2 rounded-xl border border-line p-4">
       <div className="flex items-start justify-between gap-2">
         <p className="font-medium">{opp.title}</p>
         {applied && <StatusBadge status={applied} />}
       </div>
-      <p className="text-sm leading-6 text-gray-600 dark:text-gray-300">{opp.description}</p>
-      <p className="flex flex-wrap gap-x-3 text-xs text-gray-500">
+      <p className="text-sm leading-6 text-subtle">{opp.description}</p>
+      <p className="flex flex-wrap gap-x-3 text-xs text-subtle">
         <span>{opp.major}</span><span>{opp.durationWeeks} أسبوعاً</span><span>{opp.seats} مقاعد</span><span>آخر موعد {formatDate(opp.deadline)}</span>
       </p>
       {canApply && !applied && !open && <Button variant="secondary" onClick={() => setOpen(true)}>التقديم عبر المنصة</Button>}
@@ -53,30 +54,20 @@ function CompanyDetails({ id, canApply, onClose }: { id: number; canApply: boole
   const applications = useData<Application[]>("/applications/mine");
   const appliedStatus = new Map(applications.data?.map((a) => [a.opportunity?.id, a.status]));
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      <button aria-label="إغلاق" className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <aside role="dialog" aria-modal="true" aria-label={c?.name ?? "تفاصيل الجهة"} className="relative flex h-full w-full max-w-xl flex-col overflow-y-auto bg-background shadow-2xl">
-        <header className="sticky top-0 flex items-center justify-between gap-3 border-b border-black/5 bg-background/95 px-5 py-4 backdrop-blur dark:border-white/10">
-          <h2 className="text-lg font-bold">{c?.name ?? "تفاصيل الجهة"}</h2>
-          <button aria-label="إغلاق" onClick={onClose} className="rounded-lg p-1.5 hover:bg-black/5 dark:hover:bg-white/10"><X className="size-5" /></button>
-        </header>
-        <div className="space-y-6 p-5">
+    <Drawer title={c?.name ?? "تفاصيل الجهة"} onClose={onClose}>
           <Alert>{error}</Alert>
-          {!c && !error && <p className="text-sm text-gray-500">جارٍ التحميل...</p>}
+          {!c && !error && <p className="text-sm text-subtle">جارٍ التحميل...</p>}
           {c && (
             <>
-              <div className="flex flex-wrap gap-2 text-sm">
-                <span className="rounded-full bg-gray-100 px-3 py-1 dark:bg-white/10">{c.sector}</span>
-                <span className="flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 dark:bg-white/10"><MapPin className="size-3.5" />{c.city}</span>
+              <div className="flex items-center gap-4">
+                <CompanyLogo id={c.id} name={c.name} version={c.logoVersion} className="size-20" />
+                <div className="flex flex-wrap gap-2 text-sm">
+                  <span className="rounded-full bg-muted px-3 py-1">{c.sector}</span>
+                  <span className="flex items-center gap-1 rounded-full bg-muted px-3 py-1"><MapPin className="size-3.5" />{c.city}</span>
+                </div>
               </div>
-              {c.description && <p className="whitespace-pre-line text-sm leading-7 text-gray-700 dark:text-gray-300">{c.description}</p>}
+              {c.description && <p className="whitespace-pre-line text-sm leading-7 text-subtle">{c.description}</p>}
 
               {c.majors.length > 0 && (
                 <section>
@@ -97,21 +88,27 @@ function CompanyDetails({ id, canApply, onClose }: { id: number; canApply: boole
                 </div>
               </section>
 
-              <section className="space-y-3 rounded-xl bg-teal-50/70 p-4 dark:bg-teal-500/10">
+              <section className="space-y-3 rounded-2xl bg-brand-soft p-5">
                 <h3 className="text-sm font-semibold">كيف أقدّم؟</h3>
-                <p className="text-sm leading-6 text-gray-700 dark:text-gray-300">
-                  تواصل مع الجهة مباشرة: أرسل سيرتك الذاتية وخطاب التدريب من جامعتك إلى بريدها، أو قدّم من موقعها الإلكتروني.
+                <p className="text-sm leading-6 text-subtle">
+                  {c.email
+                    ? "تواصل مع الجهة مباشرة: أرسل سيرتك الذاتية وخطاب التدريب من جامعتك إلى بريدها، أو قدّم من موقعها الإلكتروني."
+                    : "تستقبل الجهة الطلبات من صفحتها الرسمية. جهّز سيرتك الذاتية وسجلك الأكاديمي وخطاب التدريب من جامعتك، وتابع مواعيد التقديم وشروطه هناك."}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {c.email && <a href={applyMailto(c, user?.name)} className="flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark"><Send className="size-4" />راسل الجهة بالبريد</a>}
-                  {c.website && <a href={c.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 rounded-lg border border-black/15 px-4 py-2 text-sm font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"><Globe className="size-4" />موقع الجهة</a>}
+                  {c.website && (
+                    <a href={c.website} target="_blank" rel="noopener noreferrer" className={c.email ? "flex items-center gap-2 rounded-lg border border-black/15 px-4 py-2 text-sm font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10" : "flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark"}>
+                      <Globe className="size-4" />{c.email ? "موقع الجهة" : "التقديم من صفحة البرنامج"}
+                    </a>
+                  )}
                 </div>
               </section>
 
               {c.opportunities && c.opportunities.length > 0 && (
                 <section>
                   <h3 className="mb-2 text-sm font-semibold">فرص منشورة على المنصة</h3>
-                  {!canApply && <p className="mb-2 text-xs text-gray-500">التقديم عبر المنصة متوقف لأن لديك تدريباً نشطاً.</p>}
+                  {!canApply && <p className="mb-2 text-xs text-subtle">التقديم عبر المنصة متوقف لأن لديك تدريباً نشطاً.</p>}
                   <ul className="space-y-3">
                     {c.opportunities.map((o) => (
                       <InPlatformOpportunity key={o.id} opp={o} applied={appliedStatus.get(o.id)} canApply={canApply} onApplied={applications.reload} />
@@ -121,38 +118,36 @@ function CompanyDetails({ id, canApply, onClose }: { id: number; canApply: boole
               )}
             </>
           )}
-        </div>
-      </aside>
-    </div>
+    </Drawer>
   );
 }
 
 function CompanyCard({ company: c, onOpen }: { company: DirectoryCompany; onOpen: () => void }) {
   const openCount = c._count?.opportunities ?? 0;
   return (
-    <article className="flex flex-col gap-3 rounded-xl border border-black/10 bg-white p-5 dark:border-white/10 dark:bg-white/5">
-      <div className="flex items-start gap-3">
-        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-teal-50 text-brand dark:bg-teal-500/15"><Building2 className="size-5" /></span>
+    <article className="group flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5 transition hover:border-brand/40 hover:shadow-md">
+      <div className="flex items-start gap-4">
+        <CompanyLogo id={c.id} name={c.name} version={c.logoVersion} className="size-14" />
         <div className="min-w-0">
-          <h3 className="font-semibold">{c.name}</h3>
-          <p className="flex flex-wrap items-center gap-x-3 text-sm text-gray-500">
+          <h3 className="font-semibold leading-6">{c.name}</h3>
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-3 text-sm text-subtle">
             <span className="flex items-center gap-1"><MapPin className="size-3.5" />{c.city}</span>
             <span>{c.sector}</span>
           </p>
         </div>
       </div>
-      {c.description && <p className="line-clamp-2 text-sm leading-6 text-gray-700 dark:text-gray-300">{c.description}</p>}
+      {c.description && <p className="line-clamp-2 text-sm leading-6 text-subtle">{c.description}</p>}
       {c.majors.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
-          {c.majors.slice(0, 4).map((m) => <span key={m} className="rounded-full bg-gray-100 px-2 py-0.5 text-xs dark:bg-white/10">{m}</span>)}
-          {c.majors.length > 4 && <span className="text-xs text-gray-500">+{c.majors.length - 4}</span>}
+          {c.majors.slice(0, 4).map((m) => <span key={m} className="rounded-full bg-muted px-2.5 py-0.5 text-xs">{m}</span>)}
+          {c.majors.length > 4 && <span className="text-xs text-subtle">+{c.majors.length - 4}</span>}
         </div>
       )}
-      <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-1">
-        <span className="flex items-center gap-3 text-xs text-gray-500">
+      <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-line pt-4">
+        <span className="flex items-center gap-3 text-xs text-subtle">
           {openCount > 0 && <span className="flex items-center gap-1"><CalendarCheck className="size-3.5" />{openCount} فرص على المنصة</span>}
           {c.website && <span className="flex items-center gap-1"><Globe className="size-3.5" />موقع</span>}
-          {c.email && <span className="flex items-center gap-1"><Users className="size-3.5" />تقديم بالبريد</span>}
+          {c.email && <span className="flex items-center gap-1"><Mail className="size-3.5" />تقديم بالبريد</span>}
         </span>
         <Button variant="secondary" onClick={onOpen}>تفاصيل الجهة</Button>
       </div>
@@ -180,17 +175,18 @@ export function OpportunitiesBrowser() {
 
   return (
     <>
-      <div className="rounded-2xl bg-gradient-to-l from-teal-700 to-teal-900 p-6 text-white">
-        <h2 className="mb-1 text-lg font-bold">جهات تستقبل متدربي التدريب التعاوني</h2>
-        <p className="max-w-2xl text-sm leading-7 text-teal-100">اطّلع على تفاصيل كل جهة وموقعها، ثم تواصل معها مباشرة عبر بريدها أو موقعها الإلكتروني. بعض الجهات تنشر فرصها على المنصة أيضاً.</p>
-      </div>
+      <section className="rounded-3xl bg-gradient-to-l from-teal-700 to-teal-900 p-6 text-white sm:p-8">
+        <h2 className="text-xl font-bold">جهات تستقبل متدربي التدريب التعاوني</h2>
+        <p className="mt-2 max-w-2xl text-sm leading-7 text-teal-50/90">اطّلع على تفاصيل كل جهة وشروطها، ثم قدّم من صفحتها الرسمية أو بريدها. بعض الجهات تنشر فرصها على المنصة أيضاً.</p>
+        {companies.data && <p className="mt-4 text-sm font-semibold">{companies.data.length} جهة متاحة</p>}
+      </section>
       <Card>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <label className="block space-y-1 text-sm">
+        <div className="grid gap-3 sm:grid-cols-[2fr_1fr_1fr]">
+          <label className="block space-y-1.5 text-sm">
             <span className="font-medium">بحث</span>
             <span className="relative block">
-              <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="اسم الجهة أو القطاع" className="w-full rounded-lg border border-black/15 bg-transparent py-2 ps-9 pe-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 dark:border-white/20" />
+              <Search className="pointer-events-none absolute start-3.5 top-1/2 size-4 -translate-y-1/2 text-subtle" />
+              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="اسم الجهة أو القطاع" className={`${inputClass} ps-10`} />
             </span>
           </label>
           <Select label="المدينة" value={city} onChange={(e) => setCity(e.target.value)}>

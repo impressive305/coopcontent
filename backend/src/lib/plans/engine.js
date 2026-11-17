@@ -1,6 +1,30 @@
 import {
-  COMMON_TASKS, PHASES, PHASE_OBJECTIVES, PHASE_THEMES, PROFESSIONAL_SKILLS, WEEKLY_REPORT_TASK,
+  COMMON_TASKS, GENERIC_TASKS, PHASES, PHASE_OBJECTIVES, PHASE_THEMES, PROFESSIONAL_SKILLS, WEEKLY_REPORT_TASK,
 } from './catalog.js';
+
+const GENERIC_TOOL = 'الأنظمة والأدوات المستخدمة في الجهة';
+
+/**
+ * What the engine plans around. A catalog track (major + track) gives tools and
+ * field-specific tasks; otherwise the student's own field drives generic tasks
+ * that fit any workplace, from a hospital's IT desk to a bank's audit team.
+ */
+export const buildProfile = ({ major, track, focus }) =>
+  track
+    ? {
+        label: track.name,
+        tools: track.tools,
+        skills: track.skills,
+        project: track.project,
+        banks: major.tasks,
+      }
+    : {
+        label: focus,
+        tools: [],
+        skills: [focus, 'استخدام أنظمة الجهة وأدواتها', 'التوثيق المهني', 'تحليل المشكلات'],
+        project: `مشروع تحسين في ${focus}`,
+        banks: GENERIC_TASKS,
+      };
 
 const fill = (text, ctx) =>
   text.replace(/\{(tool2|tool|track|project)\}/g, (_, k) => ctx[k]);
@@ -46,19 +70,19 @@ const phaseDeliverables = {
  * Builds a complete week-by-week co-op plan from the catalog.
  * Deterministic: the same inputs always give the same plan.
  */
-export const generateEnginePlan = ({ major, track, durationWeeks, hoursPerWeek, company, goals, currentSkills = [] }) => {
+export const generateEnginePlan = ({ profile, majorName, sector, durationWeeks, hoursPerWeek, company, goals, currentSkills = [] }) => {
   const ctx = {
-    tool: track.tools[0],
-    tool2: track.tools[1] ?? track.tools[0],
-    track: track.name,
-    project: track.project,
+    tool: profile.tools[0] ?? GENERIC_TOOL,
+    tool2: profile.tools[1] ?? profile.tools[0] ?? GENERIC_TOOL,
+    track: profile.label,
+    project: profile.project,
   };
   const phases = allocateWeeks(durationWeeks);
   const banks = {
     orientation: COMMON_TASKS.orientation,
-    learning: major.tasks.learning,
-    contribution: major.tasks.contribution,
-    project: major.tasks.project,
+    learning: profile.banks.learning,
+    contribution: profile.banks.contribution,
+    project: profile.banks.project,
     closure: COMMON_TASKS.closure,
   };
 
@@ -93,7 +117,7 @@ export const generateEnginePlan = ({ major, track, durationWeeks, hoursPerWeek, 
           kind: phase.key === 'learning' && title !== WEEKLY_REPORT_TASK ? 'learning' : 'field',
         })),
         deliverable: isPhaseEnd ? phaseDeliverables[phase.key] : `التقرير الأسبوعي رقم ${weekNo}`,
-        skills: [track.skills[(weekNo - 1) % track.skills.length], PROFESSIONAL_SKILLS[(weekNo - 1) % PROFESSIONAL_SKILLS.length]],
+        skills: [profile.skills[(weekNo - 1) % profile.skills.length], PROFESSIONAL_SKILLS[(weekNo - 1) % PROFESSIONAL_SKILLS.length]],
       });
     }
   }
@@ -112,23 +136,26 @@ export const generateEnginePlan = ({ major, track, durationWeeks, hoursPerWeek, 
     .filter((m, i, all) => all.findIndex((x) => x.weekNo === m.weekNo) === i)
     .sort((a, b) => a.weekNo - b.weekNo);
 
-  const newSkills = track.skills.filter((s) => !currentSkills.some((c) => c.toLowerCase() === s.toLowerCase()));
+  const newSkills = profile.skills.filter((s) => !currentSkills.some((c) => c.toLowerCase() === s.toLowerCase()));
   const projectEnd = byKey.project.endWeek;
+  const place = company || sector;
   const planGoals = [
-    `اكتساب مهارات ${track.skills.slice(0, 2).join(' و')} وتطبيقها في مهام فعلية لدى ${company || 'جهة التدريب'}`,
-    `تسليم ${track.project} بنهاية الأسبوع ${projectEnd}، موثّقاً ومعتمداً من المشرف الميداني`,
-    `رفع جميع التقارير الأسبوعية (وعددها ${durationWeeks}) في مواعيدها واعتمادها من المشرف الأكاديمي`,
-    `إتقان استخدام ${track.tools.slice(0, 3).join('، ')} في بيئة عمل حقيقية`,
+    `اكتساب مهارات ${profile.skills.slice(0, 2).join(' و')} وتطبيقها في مهام فعلية لدى ${company || 'جهة التدريب'}`,
+    `تسليم ${profile.project} بنهاية الأسبوع ${projectEnd}، موثّقاً ومعتمداً من المشرف الميداني`,
+    `رفع جميع التقارير الأسبوعية (وعددها ${durationWeeks}) في مواعيدها`,
+    profile.tools.length
+      ? `إتقان استخدام ${profile.tools.slice(0, 3).join('، ')} في بيئة عمل حقيقية`
+      : `إتقان الأنظمة والإجراءات المستخدمة في ${profile.label}${place ? ` لدى ${place}` : ''}`,
     `تطوير المهارات المهنية: ${PROFESSIONAL_SKILLS.slice(0, 3).join('، ')}`,
   ];
   if (goals?.trim()) planGoals.push(`هدف شخصي: ${goals.trim()}`);
 
   return {
-    title: `خطة التدريب التعاوني — ${major.name} (${track.name})`,
-    summary: `خطة من ${durationWeeks} أسبوعاً بمعدل ${hoursPerWeek} ساعة أسبوعياً${company ? ` في ${company}` : ''}، تبدأ بالتهيئة وبناء الأساس في ${track.name}، ثم المساهمة في مهام الفريق، وتتوّج بمشروع تطبيقي: ${track.project}.`,
+    title: `خطة التدريب التعاوني — ${majorName} (${profile.label})`,
+    summary: `خطة من ${durationWeeks} أسبوعاً بمعدل ${hoursPerWeek} ساعة أسبوعياً${place ? ` في ${place}` : ''}، تبدأ بالتهيئة وبناء الأساس في ${profile.label}، ثم المساهمة في مهام الفريق، وتتوّج بمشروع تطبيقي: ${profile.project}.`,
     goals: planGoals,
     skills: [
-      ...(newSkills.length ? newSkills : track.skills).map((name) => ({ name, category: 'technical' })),
+      ...(newSkills.length ? newSkills : profile.skills).map((name) => ({ name, category: 'technical' })),
       ...PROFESSIONAL_SKILLS.slice(0, 3).map((name) => ({ name, category: 'professional' })),
     ],
     phases,

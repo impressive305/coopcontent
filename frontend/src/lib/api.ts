@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
+export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 const TOKEN_KEY = "coopconnect.token";
 
 export type Role = "STUDENT" | "SUPERVISOR" | "COMPANY" | "ADMIN";
@@ -27,21 +27,42 @@ export const tokenStore = {
   },
 };
 
+// Arabic wording for the API's common errors; anything else is shown as sent.
+const ERROR_MESSAGES: Record<string, string> = {
+  "Invalid email or password": "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
+  "This account is suspended": "هذا الحساب موقوف. تواصل مع وحدة التدريب.",
+  "The supervisor role is currently disabled": "دور المشرف الأكاديمي معطّل حالياً.",
+  "Duplicate value": "هذه البيانات مسجّلة مسبقاً (البريد أو الرقم الجامعي أو السجل التجاري).",
+  "Validation failed": "تحقّق من البيانات المدخلة.",
+  "Authentication required": "سجّل الدخول للمتابعة.",
+  "Invalid or expired token": "انتهت الجلسة، سجّل الدخول مجدداً.",
+  "Forbidden": "ليست لديك صلاحية لهذا الإجراء.",
+  "Internal server error": "حدث خطأ في الخادم، حاول لاحقاً.",
+  "Logo must be a PNG, JPEG or WebP image": "الشعار يجب أن يكون صورة PNG أو JPEG أو WebP.",
+  "Logo must be 300 KB or smaller": "حجم الشعار يجب ألا يتجاوز 300 كيلوبايت.",
+};
+
 export async function api<T = unknown>(path: string, options: { method?: string; body?: unknown } = {}): Promise<T> {
   const token = tokenStore.get();
-  const res = await fetch(`${API_URL}${path}`, {
-    method: options.method ?? "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      method: options.method ?? "GET",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    });
+  } catch {
+    throw new ApiError(0, "تعذّر الاتصال بالخادم. تأكد من اتصالك أو حاول بعد قليل.");
+  }
   const data = res.status === 204 ? null : await res.json().catch(() => null);
   if (!res.ok) {
     const details = data?.details;
-    const first = Array.isArray(details) && details[0]?.message ? `: ${details[0].message}` : "";
-    throw new ApiError(res.status, `${data?.error ?? "Request failed"}${first}`, details);
+    const translated = ERROR_MESSAGES[data?.error];
+    const first = !translated && Array.isArray(details) && details[0]?.message ? `: ${details[0].message}` : "";
+    throw new ApiError(res.status, translated ?? `${data?.error ?? "تعذّر تنفيذ الطلب"}${first}`, details);
   }
   return data as T;
 }
@@ -52,6 +73,8 @@ export type User = {
   name: string;
   email: string;
   role: Role;
+  isActive?: boolean;
+  createdAt?: string;
   student?: { major: string; university: string; universityId: string; gpa: string | null; gpaScale: number | null; skills: string[] } | null;
   company?: { id: number; name: string; verified: boolean } | null;
 };
@@ -83,7 +106,11 @@ export type CompanyProfile = {
   address: string | null;
   majors: string[];
   coopOpen: boolean;
+  // Changes when the logo does; null when the company has none.
+  logoVersion?: number | null;
 };
+
+export const logoUrl = (companyId: number, version: number) => `${API_URL}/logos/${companyId}?v=${version}`;
 
 // A company as students see it in the directory; `email` is where they apply.
 export type DirectoryCompany = Omit<CompanyProfile, "verified"> & {
@@ -111,9 +138,14 @@ export type Placement = {
   student: { major: string; university: string; user: { name: string; email: string } };
   company: { name: string; city: string };
   supervisor: { id: number; name: string } | null;
-  application: { opportunity: { title: string } };
+  // Null when the admin recorded a placement the student arranged directly.
+  application: { opportunity: { title: string } } | null;
+  title: string | null;
   _count: { reports: number };
 };
+
+export const placementTitle = (p: Pick<Placement, "title" | "application">) =>
+  p.title ?? p.application?.opportunity.title ?? "تدريب تعاوني";
 
 export type Report = {
   id: number;
@@ -152,6 +184,9 @@ export type PlanContent = {
 };
 export type TrainingPlan = {
   id: number;
+  major: string | null;
+  focus: string | null;
+  sector: string | null;
   majorKey: string | null;
   trackKey: string | null;
   durationWeeks: number;
@@ -164,12 +199,14 @@ export type TrainingPlan = {
   createdAt: string;
   notice?: string | null;
 };
-export type PlanSummary = Pick<TrainingPlan, "id" | "majorKey" | "trackKey" | "durationWeeks" | "source" | "isActive" | "createdAt">;
+export type PlanSummary = Pick<TrainingPlan, "id" | "major" | "focus" | "durationWeeks" | "source" | "isActive" | "createdAt">;
 export type PlanCatalog = {
   aiAvailable: boolean;
-  suggestedMajor: string | null;
-  placement: { company: string; opportunity: string; startDate: string; durationWeeks: number } | null;
-  majors: { key: string; name: string; nameEn: string; tracks: { key: string; name: string; tools: string[]; project: string }[] }[];
+  major: string;
+  majorGroups: { name: string; majors: string[] }[];
+  sectors: string[];
+  fields: string[];
+  placement: { company: string; sector: string; opportunity: string | null; startDate: string; durationWeeks: number } | null;
 };
 
 // Plan progress helpers shared by the overview and plan pages.
@@ -179,14 +216,17 @@ export const planProgress = (plan: PlanContent) => {
   return { done, total: tasks.length, percent: tasks.length ? Math.round((done / tasks.length) * 100) : 0 };
 };
 
-// The calendar week if the plan has a start date, else the first week with open tasks.
+// The calendar week if the plan has a start date, else the first week with open
+// tasks (the last week once everything is done, the first while nothing is planned).
 export const currentWeekNo = (plan: TrainingPlan) => {
   const weeks = plan.content.weeks;
   if (plan.startDate) {
     const elapsed = Math.floor((Date.now() - Date.parse(plan.startDate)) / (7 * 864e5)) + 1;
     return Math.min(Math.max(elapsed, 1), weeks.length);
   }
-  return weeks.find((w) => w.tasks.some((t) => !t.done))?.weekNo ?? weeks.length;
+  const open = weeks.find((w) => w.tasks.some((t) => !t.done));
+  if (open) return open.weekNo;
+  return weeks.some((w) => w.tasks.length) ? weeks.length : 1;
 };
 
 export const TASK_KINDS: Record<TaskKind, string> = { field: "تدريب ميداني", learning: "تعلّم ذاتي" };
@@ -195,4 +235,11 @@ export const tasksByKind = (plan: PlanContent) => {
   const counts: Record<TaskKind, number> = { field: 0, learning: 0 };
   for (const t of plan.weeks.flatMap((w) => w.tasks)) counts[t.kind ?? "field"] += 1;
   return counts;
+};
+
+// Weeks of a placement that have already started, capped at its length.
+export const placementWeeksElapsed = (p: Pick<Placement, "startDate" | "endDate">) => {
+  const week = 7 * 864e5;
+  const total = Math.round((Date.parse(p.endDate) - Date.parse(p.startDate)) / week);
+  return Math.max(0, Math.min(Math.ceil((Date.now() - Date.parse(p.startDate)) / week), total));
 };

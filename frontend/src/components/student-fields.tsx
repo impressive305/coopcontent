@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { MAJOR_SUGGESTIONS } from "@/lib/majors";
 import { ALL_UNIVERSITIES, UNIVERSITIES } from "@/lib/universities";
 import { Field, Select } from "./ui";
 
@@ -39,5 +40,15 @@ export function GpaField({ defaultValue, defaultScale }: { defaultValue?: string
         <option value="4">4</option>
       </Select>
     </div>
+  );
+}
+
+// Free-text major with suggestions; students are not limited to the list.
+export function MajorField({ defaultValue }: { defaultValue?: string }) {
+  return (
+    <>
+      <Field label="التخصص" name="major" required minLength={2} maxLength={100} list="major-suggestions" defaultValue={defaultValue} placeholder="اكتب تخصصك، مثل: علوم الحاسب" />
+      <datalist id="major-suggestions">{MAJOR_SUGGESTIONS.map((m) => <option key={m} value={m} />)}</datalist>
+    </>
   );
 }

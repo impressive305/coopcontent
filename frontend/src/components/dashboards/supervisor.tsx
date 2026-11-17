@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { api, type Placement } from "@/lib/api";
+import { api, placementTitle, type Placement } from "@/lib/api";
 import { useData } from "@/lib/use-data";
 import { ReportsList } from "../reports";
 import { Alert, Button, Card, Empty, StatusBadge, formatDate, useAction } from "../ui";
@@ -25,7 +25,7 @@ export function SupervisorDashboard() {
               <div>
                 <p className="font-semibold">{p.student.user.name} <StatusBadge status={p.status} /></p>
                 <p className="text-sm text-gray-500">
-                  {p.company.name} · {p.application.opportunity.title} · {formatDate(p.startDate)} إلى {formatDate(p.endDate)} · {p._count.reports} تقارير
+                  {p.company.name} · {placementTitle(p)} · {formatDate(p.startDate)} إلى {formatDate(p.endDate)} · {p._count.reports} تقارير
                 </p>
               </div>
               <div className="flex gap-2">
@@ -33,7 +33,7 @@ export function SupervisorDashboard() {
                 <Button onClick={() => setOpen(open === p.id ? null : p.id)}>{open === p.id ? "إخفاء" : "التقارير"}</Button>
               </div>
             </div>
-            {open === p.id && <div className="mt-4"><ReportsList placementId={p.id} mode="supervisor" onChange={reload} /></div>}
+            {open === p.id && <div className="mt-4"><ReportsList placementId={p.id} mode="reviewer" onChange={reload} /></div>}
           </div>
         ))}
       </div>

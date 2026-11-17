@@ -3,28 +3,47 @@
 /* Light is the default; dark applies when <html data-theme="dark"> (see ThemeToggle). */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
+/* Design tokens. Components use bg-surface / bg-muted / border-line / text-subtle
+   so both themes stay consistent without per-component dark: overrides. */
 :root {
-  --background: #f6f7f9;
-  --foreground: #1a1d23;
+  --background: #f4f6f7;
+  --surface: #ffffff;
+  --muted: #eef2f3;
+  --line: rgb(15 23 42 / 0.09);
+  --foreground: #0f1b24;
+  --subtle: #5d6b76;
   color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --background: #0b1014;
+  --surface: #121a20;
+  --muted: #1a242b;
+  --line: rgb(255 255 255 / 0.08);
+  --foreground: #e6edf2;
+  --subtle: #93a3b0;
+  color-scheme: dark;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-subtle: var(--subtle);
   --color-brand: #0f766e;
   --color-brand-dark: #115e59;
-  --font-sans: "Segoe UI", Tahoma, "Noto Sans Arabic", "Geeza Pro", system-ui, sans-serif;
-}
-
-[data-theme="dark"] {
-  --background: #0f1115;
-  --foreground: #e8eaee;
-  color-scheme: dark;
+  --color-brand-soft: rgb(15 118 110 / 0.1);
+  --font-sans: var(--font-plex), "Segoe UI", Tahoma, "Geeza Pro", system-ui, sans-serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+}
+
+::selection {
+  background: rgb(15 118 110 / 0.2);
 }

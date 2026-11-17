@@ -4,6 +4,7 @@ import { prisma } from '../lib/prisma.js';
 import { HttpError, notFound, forbidden } from '../lib/errors.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
+import { assertSupervisorRoleEnabled } from '../lib/features.js';
 
 const router = Router();
 router.use(authenticate);
@@ -60,6 +61,7 @@ router.patch(
   requireRole('ADMIN'),
   validate(z.object({ supervisorId: z.int().positive() })),
   async (req, res) => {
+    assertSupervisorRoleEnabled();
     const supervisor = await prisma.user.findUnique({ where: { id: req.body.supervisorId } });
     if (!supervisor || supervisor.role !== 'SUPERVISOR') throw new HttpError(400, 'User is not a supervisor');
     const placement = await prisma.placement.update({

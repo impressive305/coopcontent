@@ -1,6 +1,9 @@
 import 'dotenv/config';
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
+import { readFile } from 'node:fs/promises';
+import { COOP_COMPANIES } from './companies.js';
+import { parseLogo } from '../src/lib/logos.js';
 
 const prisma = new PrismaClient();
 const password = await bcrypt.hash('Password123', 10);
@@ -9,7 +12,10 @@ const upsertUser = (email, data) =>
   prisma.user.upsert({ where: { email }, update: {}, create: { email, passwordHash: password, ...data } });
 
 await upsertUser('admin@coopconnect.sa', { name: 'مسؤول النظام', role: 'ADMIN' });
-const supervisor = await upsertUser('supervisor@coopconnect.sa', { name: 'د. سارة العتيبي', role: 'SUPERVISOR' });
+// The supervisor role is paused (see src/lib/features.js); its demo account is created only when it is enabled.
+if (process.env.SUPERVISOR_ROLE_ENABLED === 'true') {
+  await upsertUser('supervisor@coopconnect.sa', { name: 'د. سارة العتيبي', role: 'SUPERVISOR' });
+}
 await upsertUser('student@coopconnect.sa', {
   name: 'نورة القحطاني',
   role: 'STUDENT',
@@ -20,32 +26,36 @@ await upsertUser('student@coopconnect.sa', {
 const companyUser = await upsertUser('company@coopconnect.sa', {
   name: 'خالد الدوسري',
   role: 'COMPANY',
-  company: { create: { name: 'شركة تقنية الرياض', crNumber: '1010123456', city: 'Riyadh', sector: 'Software', verified: true } },
+  company: { create: { name: 'جهة تجريبية (حساب عرض)', crNumber: '1010123456', city: 'الرياض', sector: 'تقنية المعلومات', verified: true } },
 });
 
 const company = await prisma.company.update({
   where: { userId: companyUser.id },
+  // Demo login for trying the company role; not a real organization.
   data: {
-    description: 'شركة ناشئة تبني منتجات برمجية للقطاعين الحكومي والخاص، وتستقبل متدربي التدريب التعاوني في فرق الويب والبيانات.',
-    website: 'https://example.com',
-    contactEmail: 'coop@example.com',
-    phone: '0110000000',
-    address: 'طريق الملك فهد، حي العليا',
-    majors: ['علوم الحاسب', 'هندسة البرمجيات', 'نظم المعلومات'],
+    name: 'جهة تجريبية (حساب عرض)',
+    city: 'الرياض',
+    sector: 'تقنية المعلومات',
+    description: 'حساب تجريبي لتجربة دور جهة التدريب ونشر الفرص والتقديم عبر المنصة. ليست جهة حقيقية، ويمكن للمسؤول إخفاؤها أو حذفها.',
+    website: null,
+    contactEmail: null,
+    phone: null,
+    address: null,
+    majors: ['علوم الحاسب', 'نظم المعلومات'],
   },
 });
 
-// Directory-only companies, as the admin would add them. Students apply to them directly.
-const directory = [
-  { name: 'مجموعة الأفق للحلول الرقمية', city: 'Jeddah', sector: 'Consulting', address: 'شارع التحلية', majors: ['نظم المعلومات', 'علوم البيانات', 'الأمن السيبراني'], description: 'استشارات التحول الرقمي وتحليل البيانات. برنامج تدريب تعاوني على دفعتين سنوياً.' },
-  { name: 'شركة نماء للطاقة', city: 'Dammam', sector: 'Energy', address: 'المنطقة الصناعية الثانية', majors: ['الهندسة الكهربائية', 'الهندسة الميكانيكية', 'الهندسة الصناعية'], description: 'تشغيل وصيانة محطات الطاقة والطاقة المتجددة، مع تدريب ميداني في المواقع.' },
-  { name: 'مكتب البنيان للاستشارات الهندسية', city: 'Riyadh', sector: 'Engineering', address: 'حي الملقا', majors: ['الهندسة المدنية'], description: 'تصميم إنشائي وإشراف على تنفيذ المشاريع السكنية والتجارية.' },
-];
-for (const c of directory) {
-  if (!(await prisma.company.findFirst({ where: { name: c.name } }))) {
-    await prisma.company.create({ data: { ...c, verified: true, website: 'https://example.com', contactEmail: 'careers@example.com' } });
+// Real organizations with co-op programs, managed by the admin from then on.
+// Logos go through the same validation as uploads.
+for (const { logo, ...c } of COOP_COMPANIES) {
+  const existing = await prisma.company.findFirst({ where: { name: c.name }, include: { logo: { select: { companyId: true } } } });
+  const company = existing ?? (await prisma.company.create({ data: { ...c, verified: true } }));
+  if (logo && !existing?.logo) {
+    const image = (await readFile(new URL(`./logos/${logo}`, import.meta.url))).toString('base64');
+    await prisma.companyLogo.create({ data: { companyId: company.id, ...parseLogo(image) } });
   }
 }
+
 if (!(await prisma.opportunity.count({ where: { companyId: company.id } }))) {
   const deadline = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
   await prisma.opportunity.createMany({
@@ -56,5 +66,5 @@ if (!(await prisma.opportunity.count({ where: { companyId: company.id } }))) {
   });
 }
 
-console.log(`Seeded. Supervisor id: ${supervisor.id}. All demo accounts use password "Password123".`);
+console.log('Seeded. All demo accounts use password "Password123".');
 await prisma.$disconnect();

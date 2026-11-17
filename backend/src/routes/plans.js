@@ -5,8 +5,9 @@ import { HttpError, notFound } from '../lib/errors.js';
 import { currentStudent } from '../lib/actors.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
-import { MAJORS, findMajor, matchMajor } from '../lib/plans/catalog.js';
-import { generateEnginePlan } from '../lib/plans/engine.js';
+import { matchMajor } from '../lib/plans/catalog.js';
+import { buildProfile, generateEnginePlan } from '../lib/plans/engine.js';
+import { MAJOR_GROUPS, SECTORS, suggestFields } from '../lib/plans/fields.js';
 import { aiAvailable, generateAiPlan } from '../lib/plans/ai.js';
 import { derivePhases, planEditSchema } from '../lib/plans/schema.js';
 
@@ -15,22 +16,31 @@ router.use(authenticate, requireRole('STUDENT'));
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
-const createSchema = z.object({
-  majorKey: z.string(),
-  trackKey: z.string(),
-  durationWeeks: z.int().min(4).max(52),
-  hoursPerWeek: z.int().min(10).max(48).default(40),
+// The student describes their training in their own words; nothing is limited to a fixed list.
+const contextSchema = {
+  major: z.string().trim().min(2).max(100),
+  focus: z.string().trim().min(2).max(120),
+  sector: z.string().trim().max(80).optional(),
+  hoursPerWeek: z.int().min(1).max(60).default(40),
   startDate: z.coerce.date().optional(),
+};
+
+const createSchema = z.strictObject({
+  ...contextSchema,
+  durationWeeks: z.int().min(4).max(52),
   goals: z.string().trim().max(1000).optional(),
   useAi: z.boolean().default(true),
 });
 
-const manualSchema = z.object({
+const manualSchema = z.strictObject({
+  ...contextSchema,
+  major: contextSchema.major.optional(),
+  focus: contextSchema.focus.optional(),
   title: z.string().trim().min(1).max(200),
   durationWeeks: z.int().min(1).max(52),
-  hoursPerWeek: z.int().min(1).max(60).default(40),
-  startDate: z.coerce.date().optional(),
 });
+
+const normalize = (s) => s.trim().toLowerCase().replace(/\s+/g, ' ');
 
 // Saves `data` as the student's only active plan.
 const createActivePlan = (studentId, data) =>
@@ -45,33 +55,36 @@ const activePlacement = (studentId) =>
     include: { company: true, application: { include: { opportunity: true } } },
   });
 
-// Majors/tracks for the plan wizard, pre-selected from the student's profile and placement.
+// Starting values and suggestions for the plan builder, from the student's profile and placement.
 router.get('/catalog', async (req, res) => {
   const student = await currentStudent(req.user.id);
   const placement = await activePlacement(student.id);
   res.json({
     aiAvailable: aiAvailable(),
-    suggestedMajor: matchMajor(student.major)?.key ?? null,
+    major: student.major,
+    majorGroups: MAJOR_GROUPS,
+    sectors: SECTORS,
+    fields: suggestFields(student.major),
     placement: placement && {
       company: placement.company.name,
-      opportunity: placement.application.opportunity.title,
+      sector: placement.company.sector,
+      opportunity: placement.title ?? placement.application?.opportunity.title ?? null,
       startDate: placement.startDate,
       durationWeeks: Math.round((placement.endDate - placement.startDate) / WEEK_MS),
     },
-    majors: MAJORS.map((m) => ({
-      key: m.key,
-      name: m.name,
-      nameEn: m.nameEn,
-      tracks: m.tracks.map((t) => ({ key: t.key, name: t.name, tools: t.tools, project: t.project })),
-    })),
   });
+});
+
+// Field ideas for whatever major the student types.
+router.get('/fields', validate(z.object({ major: z.string().trim().max(100).default('') }), 'query'), (req, res) => {
+  res.json(suggestFields(req.validQuery.major));
 });
 
 router.get('/', async (req, res) => {
   const student = await currentStudent(req.user.id);
   const plans = await prisma.trainingPlan.findMany({
     where: { studentId: student.id },
-    select: { id: true, majorKey: true, trackKey: true, durationWeeks: true, source: true, isActive: true, createdAt: true },
+    select: { id: true, major: true, focus: true, durationWeeks: true, source: true, isActive: true, createdAt: true },
     orderBy: { createdAt: 'desc' },
   });
   res.json(plans);
@@ -85,16 +98,18 @@ router.get('/current', async (req, res) => {
 
 router.post('/', validate(createSchema), async (req, res) => {
   const student = await currentStudent(req.user.id);
-  const { majorKey, trackKey, durationWeeks, hoursPerWeek, goals, useAi } = req.body;
-  const major = findMajor(majorKey);
-  const track = major?.tracks.find((t) => t.key === trackKey);
-  if (!major || !track) throw new HttpError(400, 'Unknown major or track');
+  const { major, focus, sector, durationWeeks, hoursPerWeek, goals, useAi } = req.body;
+  // A field that matches a catalog track gets that track's tools and tasks.
+  const catalogMajor = matchMajor(major);
+  const track = catalogMajor?.tracks.find((t) => normalize(t.name) === normalize(focus));
 
   const placement = await activePlacement(student.id);
   const startDate = req.body.startDate ?? placement?.startDate;
   const ctx = {
-    major,
-    track,
+    profile: buildProfile({ major: catalogMajor, track, focus }),
+    majorName: major,
+    focus,
+    sector: sector ?? placement?.company.sector,
     durationWeeks,
     hoursPerWeek,
     startDate,
@@ -102,8 +117,7 @@ router.post('/', validate(createSchema), async (req, res) => {
     university: student.university,
     currentSkills: student.skills,
     company: placement?.company.name,
-    sector: placement?.company.sector,
-    opportunity: placement && {
+    opportunity: placement?.application && {
       title: placement.application.opportunity.title,
       description: placement.application.opportunity.description,
     },
@@ -126,8 +140,11 @@ router.post('/', validate(createSchema), async (req, res) => {
 
   const plan = await createActivePlan(student.id, {
     placementId: placement?.id,
-    majorKey,
-    trackKey,
+    majorKey: track ? catalogMajor.key : null,
+    trackKey: track?.key ?? null,
+    major,
+    focus,
+    sector: ctx.sector,
     durationWeeks,
     hoursPerWeek,
     startDate,
@@ -141,10 +158,13 @@ router.post('/', validate(createSchema), async (req, res) => {
 // An empty week-by-week skeleton the student fills in themselves.
 router.post('/manual', validate(manualSchema), async (req, res) => {
   const student = await currentStudent(req.user.id);
-  const { title, durationWeeks, hoursPerWeek } = req.body;
+  const { title, major, focus, sector, durationWeeks, hoursPerWeek } = req.body;
   const placement = await activePlacement(student.id);
   const plan = await createActivePlan(student.id, {
     placementId: placement?.id,
+    major: major ?? student.major,
+    focus,
+    sector: sector ?? placement?.company.sector,
     durationWeeks,
     hoursPerWeek,
     startDate: req.body.startDate ?? placement?.startDate,

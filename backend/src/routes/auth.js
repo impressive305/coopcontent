@@ -5,6 +5,7 @@ import { prisma } from '../lib/prisma.js';
 import { signToken } from '../lib/auth.js';
 import { HttpError } from '../lib/errors.js';
 import { authenticate } from '../middleware/auth.js';
+import { supervisorRoleEnabled } from '../lib/features.js';
 import { validate } from '../middleware/validate.js';
 
 const router = Router();
@@ -75,6 +76,8 @@ router.post('/login', validate(loginSchema), async (req, res) => {
   if (!user || !(await bcrypt.compare(req.body.password, user.passwordHash))) {
     throw new HttpError(401, 'Invalid email or password');
   }
+  if (!user.isActive) throw new HttpError(403, 'This account is suspended');
+  if (user.role === 'SUPERVISOR' && !supervisorRoleEnabled()) throw new HttpError(403, 'The supervisor role is currently disabled');
   res.json(authResponse(user));
 });
 

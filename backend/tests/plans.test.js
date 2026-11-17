@@ -1,6 +1,6 @@
 import { api, auth, prisma, resetDb } from './setup.js';
 import { MAJORS } from '../src/lib/plans/catalog.js';
-import { generateEnginePlan } from '../src/lib/plans/engine.js';
+import { buildProfile, generateEnginePlan } from '../src/lib/plans/engine.js';
 import { checkPlanConsistency, planContentSchema } from '../src/lib/plans/schema.js';
 
 const student = {
@@ -13,7 +13,7 @@ const student = {
   skills: ['React'],
 };
 
-const planRequest = { majorKey: 'computer_science', trackKey: 'web', durationWeeks: 12, hoursPerWeek: 40, useAi: false };
+const planRequest = { major: 'علوم الحاسب', focus: 'تطوير الويب', durationWeeks: 12, hoursPerWeek: 40, useAi: false };
 
 beforeEach(resetDb);
 afterAll(() => prisma.$disconnect());
@@ -23,7 +23,7 @@ describe('plan engine', () => {
     for (const major of MAJORS) {
       for (const track of major.tracks) {
         for (const durationWeeks of [4, 5, 9, 16, 24, 52]) {
-          const plan = generateEnginePlan({ major, track, durationWeeks, hoursPerWeek: 40, currentSkills: [] });
+          const plan = generateEnginePlan({ profile: buildProfile({ major, track }), majorName: major.name, durationWeeks, hoursPerWeek: 40, currentSkills: [] });
           expect(() => planContentSchema.parse(plan)).not.toThrow();
           expect(checkPlanConsistency(plan, durationWeeks)).toEqual([]);
           expect(JSON.stringify(plan)).not.toMatch(/\{(tool2|tool|track|project)\}/);
@@ -39,10 +39,31 @@ describe('plans API', () => {
     token = (await api().post('/api/auth/register/student').send(student)).body.token;
   });
 
-  test('catalog suggests the major from the profile', async () => {
+  test('catalog starts from the profile major and suggests fields for any major', async () => {
     const res = await api().get('/api/plans/catalog').set(auth(token));
-    expect(res.body.suggestedMajor).toBe('computer_science');
-    expect(res.body.majors.length).toBeGreaterThanOrEqual(9);
+    expect(res.body.major).toBe('علوم الحاسب');
+    expect(res.body.fields).toContain('الدعم الفني وتقنية المعلومات');
+    expect(res.body.sectors).toContain('مستشفى أو جهة صحية');
+    const nursing = await api().get(`/api/plans/fields?major=${encodeURIComponent('التمريض')}`).set(auth(token));
+    expect(nursing.body).toContain('مكافحة العدوى');
+  });
+
+  test('builds a plan for any field the student names, in any setting', async () => {
+    const res = await api().post('/api/plans').set(auth(token))
+      .send({ major: 'علوم الحاسب', focus: 'الدعم الفني في المستشفى', sector: 'مستشفى أو جهة صحية', durationWeeks: 8, useAi: false });
+    expect(res.status).toBe(201);
+    expect(res.body).toMatchObject({ major: 'علوم الحاسب', focus: 'الدعم الفني في المستشفى', sector: 'مستشفى أو جهة صحية', trackKey: null });
+    expect(res.body.content.title).toContain('الدعم الفني في المستشفى');
+    expect(res.body.content.weeks).toHaveLength(8);
+    expect(checkPlanConsistency(res.body.content, 8)).toEqual([]);
+
+    // A field matching a catalog track still gets that track's richer tasks.
+    const web = await api().post('/api/plans').set(auth(token)).send(planRequest);
+    expect(web.body).toMatchObject({ majorKey: 'computer_science', trackKey: 'web' });
+
+    // Unknown fields and oversized text are rejected.
+    expect((await api().post('/api/plans').set(auth(token)).send({ ...planRequest, studentId: 99 })).status).toBe(400);
+    expect((await api().post('/api/plans').set(auth(token)).send({ ...planRequest, focus: 'x'.repeat(121) })).status).toBe(400);
   });
 
   test('creates a plan, tracks task progress, and keeps one active plan', async () => {
@@ -55,7 +76,7 @@ describe('plans API', () => {
     const toggled = await api().patch(`/api/plans/${first.body.id}/tasks/${taskId}`).set(auth(token)).send({ done: true });
     expect(toggled.body.content.weeks[0].tasks[0].done).toBe(true);
 
-    const second = await api().post('/api/plans').set(auth(token)).send({ ...planRequest, trackKey: 'ai', durationWeeks: 8 });
+    const second = await api().post('/api/plans').set(auth(token)).send({ ...planRequest, focus: 'الذكاء الاصطناعي وتعلّم الآلة', durationWeeks: 8 });
     const current = await api().get('/api/plans/current').set(auth(token));
     expect(current.body.id).toBe(second.body.id);
     expect((await api().get('/api/plans').set(auth(token))).body.filter((p) => p.isActive)).toHaveLength(1);
@@ -65,7 +86,7 @@ describe('plans API', () => {
   });
 
   test('rejects unknown tracks and other students\' plans', async () => {
-    expect((await api().post('/api/plans').set(auth(token)).send({ ...planRequest, trackKey: 'nope' })).status).toBe(400);
+    expect((await api().post('/api/plans').set(auth(token)).send({ ...planRequest, focus: '' })).status).toBe(400);
     const plan = await api().post('/api/plans').set(auth(token)).send(planRequest);
     const other = (await api().post('/api/auth/register/student').send({ ...student, email: 'b@example.com', universityId: '441000999' })).body.token;
     expect((await api().patch(`/api/plans/${plan.body.id}/tasks/w1-t1`).set(auth(other)).send({ done: true })).status).toBe(404);

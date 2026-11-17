@@ -5,6 +5,7 @@ import { notFound } from '../lib/errors.js';
 import { currentCompany } from '../lib/actors.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
+import { deleteLogo, logoUploadSchema, logoVersion, logoVersionSelect, saveLogo } from '../lib/logos.js';
 
 const router = Router();
 router.use(authenticate);
@@ -28,12 +29,13 @@ export const companyProfileSchema = z.object({
 const openOpportunity = () => ({ isOpen: true, deadline: { gte: new Date() } });
 
 // Students apply to the contact email, falling back to the company account's email.
-const forDirectory = ({ user, crNumber, userId, ...company }) => ({
+const forDirectory = ({ user, crNumber, userId, logo, ...company }) => ({
   ...company,
   email: company.contactEmail ?? user?.email ?? null,
+  logoVersion: logoVersion(logo),
 });
 
-const directoryInclude = { user: { select: { email: true } } };
+const directoryInclude = { user: { select: { email: true } }, ...logoVersionSelect };
 
 router.get('/', async (_req, res) => {
   const companies = await prisma.company.findMany({
@@ -45,7 +47,21 @@ router.get('/', async (_req, res) => {
 });
 
 router.get('/me', requireRole('COMPANY'), async (req, res) => {
-  res.json(await currentCompany(req.user.id));
+  const company = await currentCompany(req.user.id);
+  const logo = await prisma.companyLogo.findUnique({ where: { companyId: company.id }, select: { updatedAt: true } });
+  res.json({ ...company, logoVersion: logoVersion(logo) });
+});
+
+router.put('/me/logo', requireRole('COMPANY'), validate(logoUploadSchema), async (req, res) => {
+  const company = await currentCompany(req.user.id);
+  const logo = await saveLogo(company.id, req.body.image);
+  res.json({ logoVersion: logoVersion(logo) });
+});
+
+router.delete('/me/logo', requireRole('COMPANY'), async (req, res) => {
+  const company = await currentCompany(req.user.id);
+  await deleteLogo(company.id);
+  res.status(204).end();
 });
 
 router.patch('/me', requireRole('COMPANY'), validate(companyProfileSchema.partial()), async (req, res) => {

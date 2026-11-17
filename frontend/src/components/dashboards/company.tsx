@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { api, type Application, type CompanyProfile, type Opportunity, type Placement, type User } from "@/lib/api";
+import { api, placementTitle, type Application, type CompanyProfile, type Opportunity, type Placement, type User } from "@/lib/api";
+import { LogoUploader } from "../company-logo";
 import { CompanyProfileForm } from "../company-profile-form";
 import { useData } from "@/lib/use-data";
 import { Alert, Button, Card, Empty, Field, StatusBadge, formValues, formatDate, useAction } from "../ui";
@@ -78,10 +79,15 @@ function Applicants({ opportunityId, onDecided }: { opportunityId: number; onDec
 function ProfileCard() {
   const { data, error, reload } = useData<CompanyProfile>("/companies/me");
   return (
-    <Card title="ملف الجهة كما يراه الطلاب">
-      <p className="mb-4 text-sm text-gray-500">يتواصل الطلاب معكم مباشرة عبر بريد التقديم وموقعكم الإلكتروني، لذا احرصوا على اكتمال هذه البيانات.</p>
+    <Card title="ملف الجهة كما يراه الطلاب" description="يتواصل الطلاب معكم مباشرة عبر بريد التقديم وموقعكم الإلكتروني، لذا احرصوا على اكتمال هذه البيانات.">
       <Alert>{error}</Alert>
-      {data && <CompanyProfileForm initial={data} submitLabel="حفظ الملف" onSubmit={(body) => api("/companies/me", { method: "PATCH", body }).then(reload)} />}
+      {data && (
+        <div className="space-y-6">
+          <LogoUploader endpoint="/companies/me/logo" companyId={data.id} name={data.name} version={data.logoVersion} onChange={reload} />
+          {!data.verified && <p className="text-xs text-subtle">يظهر الشعار للطلاب بعد اعتماد الجهة.</p>}
+          <CompanyProfileForm initial={data} submitLabel="حفظ الملف" onSubmit={(body) => api("/companies/me", { method: "PATCH", body }).then(reload)} />
+        </div>
+      )}
     </Card>
   );
 }
@@ -142,7 +148,7 @@ export function CompanyDashboard({ user }: { user: User }) {
         <ul className="divide-y divide-black/5 text-sm dark:divide-white/10">
           {placements.data?.map((p) => (
             <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
-              <span>{p.student.user.name} · {p.application.opportunity.title} · {formatDate(p.startDate)} إلى {formatDate(p.endDate)}</span>
+              <span>{p.student.user.name} · {placementTitle(p)} · {formatDate(p.startDate)} إلى {formatDate(p.endDate)}</span>
               <StatusBadge status={p.status} />
             </li>
           ))}

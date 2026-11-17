@@ -1,15 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { X } from "lucide-react";
 
 export const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
 
-export function Card({ title, actions, children, className }: { title?: React.ReactNode; actions?: React.ReactNode; children: React.ReactNode; className?: string }) {
+export function Card({ title, description, actions, children, className }: { title?: React.ReactNode; description?: React.ReactNode; actions?: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
-    <section className={cx("rounded-xl border border-black/10 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-white/5", className)}>
+    <section className={cx("rounded-2xl border border-line bg-surface p-5 shadow-[0_1px_2px_rgb(15_23_42/0.04)] sm:p-6", className)}>
       {(title || actions) && (
-        <header className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          {title && <h2 className="text-lg font-semibold">{title}</h2>}
+        <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            {title && <h2 className="text-base font-semibold">{title}</h2>}
+            {description && <p className="mt-1 text-sm text-subtle">{description}</p>}
+          </div>
           {actions}
         </header>
       )}
@@ -18,14 +22,15 @@ export function Card({ title, actions, children, className }: { title?: React.Re
   );
 }
 
-export function Button({ variant = "primary", className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" | "danger" }) {
+export function Button({ variant = "primary", className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" | "danger" | "ghost" }) {
   return (
     <button
       {...props}
       className={cx(
-        "rounded-lg px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50",
-        variant === "primary" && "bg-brand text-white hover:bg-brand-dark",
-        variant === "secondary" && "border border-black/15 hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10",
+        "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+        variant === "primary" && "bg-brand text-white shadow-sm hover:bg-brand-dark",
+        variant === "secondary" && "border border-line bg-surface hover:bg-muted",
+        variant === "ghost" && "hover:bg-muted",
         variant === "danger" && "bg-red-600 text-white hover:bg-red-700",
         className,
       )}
@@ -33,20 +38,21 @@ export function Button({ variant = "primary", className, ...props }: React.Butto
   );
 }
 
-const inputClass = "w-full rounded-lg border border-black/15 bg-transparent px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 dark:border-white/20";
+export const inputClass = "w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm outline-none transition placeholder:text-subtle/70 focus:border-brand focus:ring-4 focus:ring-brand/10 disabled:bg-muted disabled:text-subtle";
 
-export function Field({ label, textarea, ...props }: { label: string; textarea?: boolean } & React.InputHTMLAttributes<HTMLInputElement> & React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+export function Field({ label, hint, textarea, ...props }: { label: string; hint?: React.ReactNode; textarea?: boolean } & React.InputHTMLAttributes<HTMLInputElement> & React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
-    <label className="block space-y-1 text-sm">
+    <label className="block space-y-1.5 text-sm">
       <span className="font-medium">{label}</span>
       {textarea ? <textarea rows={3} {...props} className={inputClass} /> : <input {...props} className={inputClass} />}
+      {hint && <span className="block text-xs text-subtle">{hint}</span>}
     </label>
   );
 }
 
 export function Select({ label, children, ...props }: { label: string; children: React.ReactNode } & React.SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <label className="block space-y-1 text-sm">
+    <label className="block space-y-1.5 text-sm">
       <span className="font-medium">{label}</span>
       <select {...props} className={inputClass}>{children}</select>
     </label>
@@ -72,6 +78,8 @@ const statusLabels: Record<string, [string, keyof typeof tones]> = {
   APPROVED: ["معتمد", "green"],
   RETURNED: ["مُعاد للتعديل", "red"],
   CLOSED: ["التدريب مغلق", "gray"],
+  SUSPENDED: ["موقوف", "red"],
+  UNVERIFIED: ["بانتظار الاعتماد", "amber"],
 };
 
 export function StatusBadge({ status }: { status: string }) {
@@ -81,11 +89,33 @@ export function StatusBadge({ status }: { status: string }) {
 
 export function Alert({ children, tone = "red" }: { children: React.ReactNode; tone?: "red" | "amber" | "green" }) {
   if (!children) return null;
-  return <p className={cx("rounded-lg px-3 py-2 text-sm", tones[tone])}>{children}</p>;
+  return <p role={tone === "red" ? "alert" : undefined} className={cx("rounded-xl px-3.5 py-2.5 text-sm", tones[tone])}>{children}</p>;
 }
 
 export function Empty({ children }: { children: React.ReactNode }) {
-  return <p className="py-6 text-center text-sm text-gray-500">{children}</p>;
+  return <p className="py-8 text-center text-sm text-subtle">{children}</p>;
+}
+
+// Side panel over the page; closes on Escape or a click outside.
+export function Drawer({ title, onClose, children }: { title: React.ReactNode; onClose: () => void; children: React.ReactNode }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end">
+      <button aria-label="إغلاق" className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <aside role="dialog" aria-modal="true" className="relative flex h-full w-full max-w-xl flex-col overflow-y-auto bg-background shadow-2xl">
+        <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-black/5 bg-background/95 px-5 py-4 backdrop-blur dark:border-white/10">
+          <h2 className="text-lg font-bold">{title}</h2>
+          <button aria-label="إغلاق" onClick={onClose} className="rounded-lg p-1.5 hover:bg-black/5 dark:hover:bg-white/10"><X className="size-5" /></button>
+        </header>
+        <div className="space-y-6 p-5">{children}</div>
+      </aside>
+    </div>
+  );
 }
 
 export const formatDate = (d: string) => new Date(d).toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { year: "numeric", month: "short", day: "numeric" });

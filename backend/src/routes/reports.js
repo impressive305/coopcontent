@@ -5,6 +5,7 @@ import { HttpError, notFound, forbidden } from '../lib/errors.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { loadPlacementFor } from './placements.js';
+import { supervisorRoleEnabled } from '../lib/features.js';
 
 const router = Router();
 router.use(authenticate);
@@ -52,7 +53,7 @@ router.post('/placements/:id/reports', requireRole('STUDENT'), validate(submitSc
   res.status(201).json(report);
 });
 
-// A student revises a report the supervisor returned.
+// A student revises a report that was returned for changes.
 router.put('/reports/:id', requireRole('STUDENT'), validate(contentSchema), async (req, res) => {
   const report = await prisma.report.findUnique({ where: { id: Number(req.params.id) } });
   if (!report) throw notFound('Report');
@@ -65,13 +66,14 @@ router.put('/reports/:id', requireRole('STUDENT'), validate(contentSchema), asyn
   res.json(updated);
 });
 
-router.patch('/reports/:id/review', requireRole('SUPERVISOR'), validate(reviewSchema), async (req, res) => {
+// The admin reviews any report; a supervisor (when the role is enabled) only their students'.
+router.patch('/reports/:id/review', requireRole('SUPERVISOR', 'ADMIN'), validate(reviewSchema), async (req, res) => {
   const report = await prisma.report.findUnique({
     where: { id: Number(req.params.id) },
     include: { placement: true },
   });
   if (!report) throw notFound('Report');
-  if (report.placement.supervisorId !== req.user.id) throw forbidden();
+  if (req.user.role === 'SUPERVISOR' && (!supervisorRoleEnabled() || report.placement.supervisorId !== req.user.id)) throw forbidden();
   if (report.status !== 'SUBMITTED') throw new HttpError(409, 'Report is not awaiting review');
   const updated = await prisma.report.update({
     where: { id: report.id },

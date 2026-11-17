@@ -49,6 +49,8 @@ model User {
   email        String   @unique
   passwordHash String   @map("password_hash")
   role         Role
+  // Suspended accounts cannot sign in or use existing tokens.
+  isActive     Boolean  @default(true) @map("is_active")
   createdAt    DateTime @default(now()) @map("created_at")
 
   student         Student?
@@ -98,10 +100,23 @@ model Company {
   coopOpen     Boolean  @default(true) @map("coop_open")
 
   user          User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logo          CompanyLogo?
   opportunities Opportunity[]
   placements    Placement[]
 
   @@map("companies")
+}
+
+// Kept apart from Company so logo bytes never ride along in company queries.
+model CompanyLogo {
+  companyId Int      @id @map("company_id")
+  data      Bytes
+  mimeType  String   @map("mime_type")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("company_logos")
 }
 
 model Opportunity {
@@ -141,9 +156,12 @@ model Application {
   @@map("applications")
 }
 
+// Created when a company accepts an in-platform application, or recorded by the
+// admin for a student who applied to the company directly (no application).
 model Placement {
   id            Int             @id @default(autoincrement())
-  applicationId Int             @unique @map("application_id")
+  applicationId Int?            @unique @map("application_id")
+  title         String?
   studentId     Int             @map("student_id")
   companyId     Int             @map("company_id")
   supervisorId  Int?            @map("supervisor_id")
@@ -151,7 +169,7 @@ model Placement {
   endDate       DateTime        @map("end_date")
   status        PlacementStatus @default(ACTIVE)
 
-  application Application    @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  application Application?   @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   student     Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
   plans       TrainingPlan[]
   company     Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
@@ -185,7 +203,11 @@ model TrainingPlan {
   id            Int        @id @default(autoincrement())
   studentId     Int        @map("student_id")
   placementId   Int?       @map("placement_id")
-  // Null for plans the student builds by hand.
+  // The student's major and chosen field in their own words. majorKey/trackKey
+  // are set only when the field matched a catalog track.
+  major         String?
+  focus         String?
+  sector        String?
   majorKey      String?    @map("major_key")
   trackKey      String?    @map("track_key")
   durationWeeks Int        @map("duration_weeks")

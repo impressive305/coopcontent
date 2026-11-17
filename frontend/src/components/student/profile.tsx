@@ -2,7 +2,7 @@
 
 import { api, type User } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { GpaField, UniversityField } from "../student-fields";
+import { GpaField, MajorField, UniversityField } from "../student-fields";
 import { Alert, Button, Card, Field, formValues, useAction } from "../ui";
 
 export function StudentProfile() {
@@ -32,7 +32,7 @@ export function StudentProfile() {
         <Field label="البريد الإلكتروني" value={user.email} disabled readOnly dir="ltr" />
         <Field label="الرقم الجامعي" value={s.universityId} disabled readOnly dir="ltr" />
         <UniversityField defaultValue={s.university} />
-        <Field label="التخصص" name="major" required defaultValue={s.major} />
+        <MajorField defaultValue={s.major} />
         <GpaField defaultValue={s.gpa} defaultScale={s.gpaScale} />
         <div className="sm:col-span-2">
           <Field label="المهارات (مفصولة بفواصل)" name="skills" defaultValue={s.skills.join(", ")} dir="ltr" />

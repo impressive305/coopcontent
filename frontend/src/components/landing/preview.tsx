@@ -12,7 +12,7 @@ export function DashboardPreview() {
   const tasks = [
     ["كتابة وثيقة متطلبات الميزة واعتمادها", true],
     ["تصميم البنية التقنية ومخطط البيانات", true],
-    ["كتابة التقرير الأسبوعي ورفعه للمشرف", false],
+    ["كتابة التقرير الأسبوعي ورفعه على المنصة", false],
   ] as const;
   return (
     <div aria-hidden className="relative rounded-2xl border border-black/10 bg-white p-3 shadow-2xl shadow-teal-900/10 dark:border-white/10 dark:bg-[#151922]">
