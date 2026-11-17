@@ -2,6 +2,7 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
+import { BCRYPT_ROUNDS } from '../lib/auth.js';
 import { HttpError, notFound } from '../lib/errors.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
@@ -66,7 +67,7 @@ const placementSummary = {
 };
 
 const createUser = async ({ password, ...data }) =>
-  prisma.user.create({ data: { ...data, passwordHash: await bcrypt.hash(password, 10) }, select: userSummary });
+  prisma.user.create({ data: { ...data, passwordHash: await bcrypt.hash(password, BCRYPT_ROUNDS) }, select: userSummary });
 
 router.get('/users', validate(z.object({
   role: z.enum(['STUDENT', 'SUPERVISOR', 'COMPANY', 'ADMIN']).optional(),
@@ -137,7 +138,7 @@ router.patch('/users/:id', validate(userUpdateSchema), async (req, res) => {
     where: { id: existing.id },
     data: {
       ...data,
-      ...(password && { passwordHash: await bcrypt.hash(password, 10) }),
+      ...(password && { passwordHash: await bcrypt.hash(password, BCRYPT_ROUNDS) }),
       ...(student && { student: { update: student } }),
     },
     select: userSummary,

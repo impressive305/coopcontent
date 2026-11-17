@@ -1,4 +1,4 @@
-import { api, auth, prisma, resetDb } from './setup.js';
+import { api, auth, prisma, resetDb, sessionOf } from './setup.js';
 import { MAJORS } from '../src/lib/plans/catalog.js';
 import { buildProfile, generateEnginePlan } from '../src/lib/plans/engine.js';
 import { checkPlanConsistency, planContentSchema } from '../src/lib/plans/schema.js';
@@ -36,7 +36,7 @@ describe('plan engine', () => {
 describe('plans API', () => {
   let token;
   beforeEach(async () => {
-    token = (await api().post('/api/auth/register/student').send(student)).body.token;
+    token = sessionOf(await api().post('/api/auth/register/student').send(student));
   });
 
   test('catalog starts from the profile major and suggests fields for any major', async () => {
@@ -88,7 +88,7 @@ describe('plans API', () => {
   test('rejects unknown tracks and other students\' plans', async () => {
     expect((await api().post('/api/plans').set(auth(token)).send({ ...planRequest, focus: '' })).status).toBe(400);
     const plan = await api().post('/api/plans').set(auth(token)).send(planRequest);
-    const other = (await api().post('/api/auth/register/student').send({ ...student, email: 'b@example.com', universityId: '441000999' })).body.token;
+    const other = sessionOf(await api().post('/api/auth/register/student').send({ ...student, email: 'b@example.com', universityId: '441000999' }));
     expect((await api().patch(`/api/plans/${plan.body.id}/tasks/w1-t1`).set(auth(other)).send({ done: true })).status).toBe(404);
     expect((await api().delete(`/api/plans/${plan.body.id}`).set(auth(other))).status).toBe(404);
   });

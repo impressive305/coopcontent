@@ -2,13 +2,13 @@ import { verifyToken } from '../lib/auth.js';
 import { HttpError } from '../lib/errors.js';
 import { prisma } from '../lib/prisma.js';
 import { supervisorRoleEnabled } from '../lib/features.js';
+import { readSession } from '../lib/session.js';
 
 // Checks the token, then the account itself, so suspensions and role changes
 // by the admin take effect immediately rather than when the token expires.
 export const authenticate = async (req, _res, next) => {
-  const header = req.headers.authorization || '';
-  const [scheme, token] = header.split(' ');
-  if (scheme !== 'Bearer' || !token) return next(new HttpError(401, 'Authentication required'));
+  const token = readSession(req);
+  if (!token) return next(new HttpError(401, 'Authentication required'));
   let payload;
   try {
     payload = verifyToken(token);

@@ -4,9 +4,10 @@ import { PrismaClient } from '@prisma/client';
 import { readFile } from 'node:fs/promises';
 import { COOP_COMPANIES } from './companies.js';
 import { parseLogo } from '../src/lib/logos.js';
+import { BCRYPT_ROUNDS } from '../src/lib/auth.js';
 
 const prisma = new PrismaClient();
-const password = await bcrypt.hash('Password123', 10);
+const password = await bcrypt.hash('Password123', BCRYPT_ROUNDS);
 
 const upsertUser = (email, data) =>
   prisma.user.upsert({ where: { email }, update: {}, create: { email, passwordHash: password, ...data } });

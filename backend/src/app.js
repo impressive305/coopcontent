@@ -13,11 +13,14 @@ import studentRoutes from './routes/students.js';
 import companyRoutes from './routes/companies.js';
 import logoRoutes from './routes/logos.js';
 import { errorHandler } from './middleware/error.js';
+import { allowedOrigins, requireTrustedOrigin } from './middleware/origin.js';
 
 export const createApp = () => {
   const app = express();
   app.use(helmet());
-  app.use(cors({ origin: process.env.CORS_ORIGIN?.split(',') ?? 'http://localhost:3000' }));
+  // credentials: the session cookie travels with requests from the frontend.
+  app.use(cors({ origin: allowedOrigins(), credentials: true }));
+  app.use(requireTrustedOrigin);
   app.use(express.json({ limit: '1mb' }));
 
   app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));

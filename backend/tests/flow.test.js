@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { signToken } from '../src/lib/auth.js';
-import { api, auth, createStaff, prisma, resetDb } from './setup.js';
+import { api, auth, createStaff, prisma, rawApi, resetDb, sessionOf } from './setup.js';
 
 const student = {
   name: 'Noura',
@@ -45,7 +45,7 @@ describe('auth', () => {
 
     const login = await api().post('/api/auth/login').send({ email: student.email, password: student.password });
     expect(login.status).toBe(200);
-    const me = await api().get('/api/auth/me').set(auth(login.body.token));
+    const me = await api().get('/api/auth/me').set(auth(sessionOf(login)));
     expect(me.body.student.major).toBe('Computer Science');
   });
 
@@ -57,7 +57,7 @@ describe('auth', () => {
 
     const reg = await api().post('/api/auth/register/student').send({ ...student, gpa: 3.75, gpaScale: 4 });
     expect(reg.status).toBe(201);
-    const me = await api().get('/api/auth/me').set(auth(reg.body.token));
+    const me = await api().get('/api/auth/me').set(auth(sessionOf(reg)));
     expect(me.body.student).toMatchObject({ gpa: '3.75', gpaScale: 4 });
   });
 
@@ -68,9 +68,42 @@ describe('auth', () => {
     expect((await api().post('/api/auth/register/company').send({ ...company, crNumber: '12' })).status).toBe(400);
   });
 
+  test('keeps the session in an httpOnly cookie and rejects cross-site writes', async () => {
+    const reg = await api().post('/api/auth/register/student').send(student);
+    const cookie = [reg.headers['set-cookie']].flat().find((c) => c.startsWith('coopconnect_session='));
+    expect(cookie).toMatch(/HttpOnly/);
+    expect(cookie).toMatch(/SameSite=Lax/);
+    expect(cookie).toMatch(/Path=\/api/);
+    expect(reg.body.token).toBeUndefined();
+    const token = sessionOf(reg);
+
+    // Tokens are accepted only from the cookie, never from a header a script could set.
+    expect((await api().get('/api/auth/me').set({ Authorization: `Bearer ${token}` })).status).toBe(401);
+    expect((await api().get('/api/auth/me').set(auth(token))).status).toBe(200);
+
+    // A write from another site, or with no origin at all, is refused even with the cookie.
+    const evil = await rawApi().patch('/api/students/me').set(auth(token)).set('Origin', 'https://evil.example').send({ major: 'Hacked' });
+    expect(evil.status).toBe(403);
+    expect((await rawApi().patch('/api/students/me').set(auth(token)).send({ major: 'Hacked' })).status).toBe(403);
+    expect((await rawApi().post('/api/auth/login').send({ email: student.email, password: student.password })).status).toBe(403);
+    expect((await prisma.student.findFirst()).major).toBe('Computer Science');
+
+    // Logout expires the cookie.
+    const out = await api().post('/api/auth/logout');
+    expect(out.status).toBe(204);
+    expect([out.headers['set-cookie']].flat().join()).toMatch(/coopconnect_session=;.*Expires=Thu, 01 Jan 1970/);
+  });
+
+  test('stores password hashes, never passwords', async () => {
+    await api().post('/api/auth/register/student').send(student);
+    const { passwordHash } = await prisma.user.findFirst();
+    expect(passwordHash).not.toContain(student.password);
+    expect(passwordHash).toMatch(/^\$2[aby]\$12\$/);
+  });
+
   test('enforces roles', async () => {
-    const { body } = await api().post('/api/auth/register/student').send(student);
-    expect((await api().get('/api/admin/stats').set(auth(body.token))).status).toBe(403);
+    const reg = await api().post('/api/auth/register/student').send(student);
+    expect((await api().get('/api/admin/stats').set(auth(sessionOf(reg)))).status).toBe(403);
     expect((await api().get('/api/admin/stats')).status).toBe(401);
   });
 });
@@ -78,8 +111,8 @@ describe('auth', () => {
 describe('co-op lifecycle', () => {
   test('opportunity → application → placement → reports → completion', async () => {
     const admin = await createStaff('ADMIN', 'admin@example.com');
-    const s = (await api().post('/api/auth/register/student').send(student)).body.token;
-    const c = (await api().post('/api/auth/register/company').send(company)).body.token;
+    const s = sessionOf(await api().post('/api/auth/register/student').send(student));
+    const c = sessionOf(await api().post('/api/auth/register/company').send(company));
 
     // Unverified companies cannot post.
     expect((await api().post('/api/opportunities').set(auth(c)).send(opportunity)).status).toBe(403);
@@ -134,11 +167,11 @@ describe('co-op lifecycle', () => {
 
   test('participants only: another student cannot see or report on a placement', async () => {
     const admin = await createStaff('ADMIN', 'admin@example.com');
-    const c = (await api().post('/api/auth/register/company').send(company)).body.token;
+    const c = sessionOf(await api().post('/api/auth/register/company').send(company));
     await prisma.company.updateMany({ data: { verified: true } });
     const opp = await api().post('/api/opportunities').set(auth(c)).send({ ...opportunity, seats: 1 });
-    const s1 = (await api().post('/api/auth/register/student').send(student)).body.token;
-    const s2 = (await api().post('/api/auth/register/student').send({ ...student, email: 'b@example.com', universityId: '441000999' })).body.token;
+    const s1 = sessionOf(await api().post('/api/auth/register/student').send(student));
+    const s2 = sessionOf(await api().post('/api/auth/register/student').send({ ...student, email: 'b@example.com', universityId: '441000999' }));
     const a1 = await api().post('/api/applications').set(auth(s1)).send({ opportunityId: opp.body.id });
     const a2 = await api().post('/api/applications').set(auth(s2)).send({ opportunityId: opp.body.id });
 
@@ -156,8 +189,8 @@ describe('co-op lifecycle', () => {
 describe('company directory', () => {
   test('lists verified companies that take co-op students, with their contact details', async () => {
     const admin = await createStaff('ADMIN', 'admin@example.com');
-    const studentToken = (await api().post('/api/auth/register/student').send(student)).body.token;
-    const companyToken = (await api().post('/api/auth/register/company').send(company)).body.token;
+    const studentToken = sessionOf(await api().post('/api/auth/register/student').send(student));
+    const companyToken = sessionOf(await api().post('/api/auth/register/company').send(company));
 
     // Self-registered companies stay hidden until verified.
     expect((await api().get('/api/companies').set(auth(studentToken))).body).toEqual([]);
@@ -192,7 +225,8 @@ describe('company directory', () => {
 describe('admin control panel', () => {
   test('lists, edits, suspends and deletes accounts', async () => {
     const admin = await createStaff('ADMIN', 'admin@example.com');
-    const reg = (await api().post('/api/auth/register/student').send(student)).body;
+    const regRes = await api().post('/api/auth/register/student').send(student);
+    const reg = { ...regRes.body, token: sessionOf(regRes) };
     const studentId = reg.user.id;
 
     const students = await api().get('/api/admin/users?role=STUDENT').set(auth(admin));
@@ -226,7 +260,7 @@ describe('admin control panel', () => {
 
   test('records placements and manages opportunities for any company', async () => {
     const admin = await createStaff('ADMIN', 'admin@example.com');
-    const studentToken = (await api().post('/api/auth/register/student').send(student)).body.token;
+    const studentToken = sessionOf(await api().post('/api/auth/register/student').send(student));
     const studentProfile = await prisma.student.findFirst();
     const company = (await api().post('/api/admin/companies').set(auth(admin)).send({ name: 'Directory Co', city: 'Jeddah', sector: 'Energy' })).body;
 
@@ -290,8 +324,8 @@ describe('company logos', () => {
 
   test('accepts raster images only, from the company itself or the admin', async () => {
     const admin = await createStaff('ADMIN', 'admin@example.com');
-    const c = (await api().post('/api/auth/register/company').send(company)).body.token;
-    const s = (await api().post('/api/auth/register/student').send(student)).body.token;
+    const c = sessionOf(await api().post('/api/auth/register/company').send(company));
+    const s = sessionOf(await api().post('/api/auth/register/student').send(student));
     const companyId = (await prisma.company.findFirst()).id;
 
     const ok = await api().put('/api/companies/me/logo').set(auth(c)).send({ image: asDataUrl(png) });

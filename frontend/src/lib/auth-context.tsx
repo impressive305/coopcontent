@@ -1,14 +1,14 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { api, tokenStore, type User } from "./api";
+import { api, clearLegacyToken, type User } from "./api";
 
 type AuthState = {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (kind: "student" | "company", body: Record<string, unknown>) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   refresh: () => Promise<void>;
 };
 
@@ -18,41 +18,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // The session cookie is httpOnly, so the only way to know who is signed in is to ask the API.
   const refresh = useCallback(async () => {
-    if (!tokenStore.get()) {
-      setUser(null);
-      return;
-    }
     try {
       setUser(await api<User>("/auth/me"));
     } catch {
-      tokenStore.set(null);
       setUser(null);
     }
   }, []);
 
-  // Restore the session from a stored token on first load.
   useEffect(() => {
-    const restore = tokenStore.get()
-      ? api<User>("/auth/me").then(setUser, () => tokenStore.set(null))
-      : Promise.resolve();
-    restore.finally(() => setLoading(false));
+    clearLegacyToken();
+    api<User>("/auth/me").then(setUser, () => setUser(null)).finally(() => setLoading(false));
   }, []);
 
   const login = async (email: string, password: string) => {
-    const { token } = await api<{ token: string }>("/auth/login", { method: "POST", body: { email, password } });
-    tokenStore.set(token);
+    await api("/auth/login", { method: "POST", body: { email, password } });
     await refresh();
   };
 
   const register = async (kind: "student" | "company", body: Record<string, unknown>) => {
-    const { token } = await api<{ token: string }>(`/auth/register/${kind}`, { method: "POST", body });
-    tokenStore.set(token);
+    await api(`/auth/register/${kind}`, { method: "POST", body });
     await refresh();
   };
 
-  const logout = () => {
-    tokenStore.set(null);
+  const logout = async () => {
+    // Clear the local state even if the request fails; the cookie also expires on its own.
+    await api("/auth/logout", { method: "POST" }).catch(() => {});
     setUser(null);
   };
 

@@ -100,7 +100,7 @@ function Sidebar({ user, onNavigate }: { user: User; onNavigate?: () => void }) 
           </div>
         </div>
         <button
-          onClick={() => { logout(); router.push("/login"); }}
+          onClick={async () => { await logout(); router.push("/login"); }}
           className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 py-2 text-sm text-teal-100/80 transition hover:bg-white/5 hover:text-white"
         >
           <LogOut className="size-4" /> تسجيل الخروج

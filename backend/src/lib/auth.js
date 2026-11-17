@@ -11,3 +11,6 @@ export const signToken = (user) =>
   });
 
 export const verifyToken = (token) => jwt.verify(token, secret());
+
+// bcrypt work factor for password hashes (2^12 rounds).
+export const BCRYPT_ROUNDS = 12;

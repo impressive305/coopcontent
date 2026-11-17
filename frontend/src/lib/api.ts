@@ -1,5 +1,4 @@
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
-const TOKEN_KEY = "coopconnect.token";
 
 export type Role = "STUDENT" | "SUPERVISOR" | "COMPANY" | "ADMIN";
 
@@ -9,22 +8,14 @@ export class ApiError extends Error {
   }
 }
 
-export const tokenStore = {
-  get: () => {
-    try {
-      return localStorage.getItem(TOKEN_KEY);
-    } catch {
-      return null;
-    }
-  },
-  set: (token: string | null) => {
-    try {
-      if (token) localStorage.setItem(TOKEN_KEY, token);
-      else localStorage.removeItem(TOKEN_KEY);
-    } catch {
-      // Storage unavailable (private mode): the session lasts until reload.
-    }
-  },
+// Sessions live in an httpOnly cookie set by the API; this code never sees the token.
+// Earlier versions kept it in localStorage: remove any copy left in this browser.
+export const clearLegacyToken = () => {
+  try {
+    localStorage.removeItem("coopconnect.token");
+  } catch {
+    // Storage unavailable: nothing to clear.
+  }
 };
 
 // Arabic wording for the API's common errors; anything else is shown as sent.
@@ -43,15 +34,12 @@ const ERROR_MESSAGES: Record<string, string> = {
 };
 
 export async function api<T = unknown>(path: string, options: { method?: string; body?: unknown } = {}): Promise<T> {
-  const token = tokenStore.get();
   let res: Response;
   try {
     res = await fetch(`${API_URL}${path}`, {
       method: options.method ?? "GET",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
     });
   } catch {
