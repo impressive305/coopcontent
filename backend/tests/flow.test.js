@@ -9,6 +9,7 @@ const student = {
   universityId: '441000123',
   university: 'KSU',
   major: 'Computer Science',
+  degree: 'BACHELOR',
   skills: ['React'],
 };
 
@@ -58,6 +59,29 @@ describe('auth', () => {
     expect(reg.status).toBe(201);
     const me = await api().get('/api/auth/me').set(auth(sessionOf(reg)));
     expect(me.body.student).toMatchObject({ gpa: '3.75', gpaScale: 4 });
+  });
+
+  test('requires the degree (diploma or bachelor) at sign-up and lets it be changed, not cleared', async () => {
+    const { degree, ...withoutDegree } = student;
+    expect((await api().post('/api/auth/register/student').send(withoutDegree)).status).toBe(400);
+    expect((await api().post('/api/auth/register/student').send({ ...student, degree: 'MASTER' })).status).toBe(400);
+    expect((await api().post('/api/auth/register/student').send({ ...student, degree: 'bachelor' })).status).toBe(400);
+    expect(await prisma.user.count()).toBe(0);
+
+    const reg = await api().post('/api/auth/register/student').send({ ...student, degree: 'DIPLOMA' });
+    expect(reg.status).toBe(201);
+    const token = sessionOf(reg);
+    expect((await api().get('/api/auth/me').set(auth(token))).body.student.degree).toBe('DIPLOMA');
+
+    expect((await api().patch('/api/students/me').set(auth(token)).send({ degree })).body.student.degree).toBe('BACHELOR');
+    expect((await api().patch('/api/students/me').set(auth(token)).send({ degree: null })).status).toBe(400);
+    expect((await api().patch('/api/students/me').set(auth(token)).send({ degree: 'PHD' })).status).toBe(400);
+
+    // The admin sees and can correct it.
+    const admin = await createStaff('ADMIN', 'admin@example.com');
+    expect((await api().get('/api/admin/users?role=STUDENT').set(auth(admin))).body[0].student.degree).toBe('BACHELOR');
+    const fixed = await api().patch(`/api/admin/users/${reg.body.user.id}`).set(auth(admin)).send({ student: { degree: 'DIPLOMA' } });
+    expect(fixed.body.student.degree).toBe('DIPLOMA');
   });
 
   test('rejects bad credentials, duplicates and invalid input', async () => {

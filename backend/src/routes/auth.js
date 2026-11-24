@@ -8,6 +8,7 @@ import { checkPassword, passwordField } from '../lib/password.js';
 import { HttpError } from '../lib/errors.js';
 import { authenticate } from '../middleware/auth.js';
 import { supervisorRoleEnabled } from '../lib/features.js';
+import { DEGREES } from '../lib/degrees.js';
 import { validate } from '../middleware/validate.js';
 
 const router = Router();
@@ -23,6 +24,7 @@ const studentSchema = z.object({
   universityId: z.string().trim().min(3),
   university: z.string().trim().min(2),
   major: z.string().trim().min(2),
+  degree: z.enum(DEGREES),
   gpa: z.number().min(0).max(5).optional(),
   gpaScale: z.union([z.literal(4), z.literal(5)]).optional(),
   skills: z.array(z.string().trim().min(1)).max(30).default([]),

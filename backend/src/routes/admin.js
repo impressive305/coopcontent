@@ -11,6 +11,7 @@ import { companyProfileSchema } from './companies.js';
 import { deleteLogo, logoUploadSchema, logoVersion, logoVersionSelect, saveLogo } from '../lib/logos.js';
 import { opportunitySchema } from './opportunities.js';
 import { assertSupervisorRoleEnabled, supervisorRoleEnabled } from '../lib/features.js';
+import { DEGREES } from '../lib/degrees.js';
 
 // The training unit's control panel: every account, company, opportunity and placement.
 const router = Router();
@@ -37,6 +38,7 @@ const userUpdateSchema = z.object({
     universityId: z.string().trim().min(3),
     university: z.string().trim().min(2),
     major: z.string().trim().min(2),
+    degree: z.enum(DEGREES),
     gpa: z.number().min(0).max(5).nullable(),
     gpaScale: z.union([z.literal(4), z.literal(5)]).nullable(),
     skills: z.array(z.string().trim().min(1)).max(30),
@@ -50,7 +52,7 @@ const userSummary = {
   role: true,
   isActive: true,
   createdAt: true,
-  student: { select: { id: true, universityId: true, university: true, major: true } },
+  student: { select: { id: true, universityId: true, university: true, major: true, degree: true } },
   company: { select: { id: true, name: true, verified: true } },
 };
 

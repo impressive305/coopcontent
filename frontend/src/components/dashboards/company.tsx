@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Check } from "lucide-react";
-import { api, placementTitle, type Application, type CompanyProfile, type CompanyReview, type Opportunity, type Placement, type User } from "@/lib/api";
+import { DEGREES, api, placementTitle, type Application, type CompanyProfile, type CompanyReview, type Opportunity, type Placement, type User } from "@/lib/api";
 import { LogoUploader } from "../company-logo";
 import { CompanyProfileForm } from "../company-profile-form";
 import { useData } from "@/lib/use-data";
@@ -57,7 +57,7 @@ function Applicants({ opportunityId, onDecided }: { opportunityId: number; onDec
             <div>
               <p className="font-medium">{a.student?.user.name} <span className="text-gray-500" dir="ltr">({a.student?.user.email})</span></p>
               <p className="text-gray-500">
-                {a.student?.university} · {a.student?.major}{a.student?.gpa ? ` · المعدل ${a.student.gpa}${a.student.gpaScale ? ` من ${a.student.gpaScale}` : ""}` : ""}
+                {a.student?.university} · {a.student?.degree ? `${DEGREES[a.student.degree]} · ` : ""}{a.student?.major}{a.student?.gpa ? ` · المعدل ${a.student.gpa}${a.student.gpaScale ? ` من ${a.student.gpaScale}` : ""}` : ""}
                 {a.student?.skills.length ? ` · ${a.student.skills.join("، ")}` : ""}
               </p>
             </div>

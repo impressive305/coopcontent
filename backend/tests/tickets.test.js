@@ -8,6 +8,7 @@ const student = {
   universityId: '441000123',
   university: 'KSU',
   major: 'Computer Science',
+  degree: 'BACHELOR',
 };
 
 const ticket = { subject: 'Cannot upload my report', category: 'TECHNICAL', body: 'The upload button does nothing when I click it.' };

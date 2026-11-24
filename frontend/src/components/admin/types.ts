@@ -1,4 +1,4 @@
-import type { ApplicationStatus, CompanyProfile, CompanyReview, Role, TrainingPlan } from "@/lib/api";
+import type { ApplicationStatus, CompanyProfile, CompanyReview, Degree, Role, TrainingPlan } from "@/lib/api";
 
 // Shapes returned by the /admin endpoints (only the fields the UI uses).
 export type AdminUser = {
@@ -8,7 +8,7 @@ export type AdminUser = {
   role: Role;
   isActive: boolean;
   createdAt: string;
-  student: { id: number; universityId: string; university: string; major: string } | null;
+  student: { id: number; universityId: string; university: string; major: string; degree: Degree | null } | null;
   company: { id: number; name: string; verified: boolean } | null;
 };
 

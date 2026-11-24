@@ -21,7 +21,7 @@ await upsertUser('student@coopconnect.sa', {
   name: 'نورة القحطاني',
   role: 'STUDENT',
   student: {
-    create: { universityId: '441000123', university: 'جامعة الملك سعود', major: 'Computer Science', gpa: 4.6, gpaScale: 5, skills: ['React', 'SQL'] },
+    create: { universityId: '441000123', university: 'جامعة الملك سعود', major: 'Computer Science', degree: 'BACHELOR', gpa: 4.6, gpaScale: 5, skills: ['React', 'SQL'] },
   },
 });
 const companyUser = await upsertUser('company@coopconnect.sa', {

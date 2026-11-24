@@ -115,6 +115,7 @@ router.post('/', validate(createSchema), async (req, res) => {
     startDate,
     goals,
     university: student.university,
+    degree: student.degree,
     currentSkills: student.skills,
     company: placement?.company.name,
     opportunity: placement?.application && {

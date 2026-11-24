@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Building2, GraduationCap, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { AuthShell, PasswordField } from "@/components/auth-shell";
-import { GpaField, MajorField, UniversityField } from "@/components/student-fields";
+import { DegreeField, GpaField, MajorField, UniversityField } from "@/components/student-fields";
 import { Alert, Button, Field, cx, formValues, useAction } from "@/components/ui";
 
 const SAUDI_CITIES = ["الرياض", "جدة", "مكة المكرمة", "المدينة المنورة", "الدمام", "الخبر", "الظهران", "الجبيل", "الأحساء", "القطيف", "الطائف", "تبوك", "أبها", "خميس مشيط", "بريدة", "عنيزة", "حائل", "جازان", "نجران", "الباحة", "سكاكا", "عرعر", "ينبع", "حفر الباطن", "نيوم"];
@@ -93,7 +93,10 @@ export default function RegisterPage() {
               <Field label="الرقم الجامعي" name="universityId" required minLength={3} dir="ltr" />
               <UniversityField />
             </div>
-            <MajorField />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <DegreeField />
+              <MajorField />
+            </div>
             <GpaField />
             <Field label="مهاراتك الحالية (اختياري)" name="skills" placeholder="مثال: Excel، خدمة العملاء، Python" hint="افصل بينها بفاصلة. تساعد في تخصيص خطة تدريبك." />
           </Section>

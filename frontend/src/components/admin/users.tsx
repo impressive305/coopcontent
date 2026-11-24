@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { Search, UserPlus } from "lucide-react";
-import { api, placementTitle, type Role } from "@/lib/api";
+import { DEGREES, api, placementTitle, type Role } from "@/lib/api";
 import { useData } from "@/lib/use-data";
-import { GpaField, UniversityField } from "../student-fields";
+import { DegreeField, GpaField, UniversityField } from "../student-fields";
 import { SOURCE_LABELS } from "../student/plan-shared";
 import { Alert, Button, Card, Drawer, Empty, Field, Select, StatusBadge, cx, formValues, formatDate, useAction } from "../ui";
 import { SUPERVISOR_ROLE_ENABLED } from "@/lib/features";
@@ -77,6 +77,7 @@ function StudentProfileForm({ user, onSaved }: { user: AdminUserDetails; onSaved
       universityId: v.universityId,
       university: v.university,
       major: v.major,
+      degree: v.degree,
       gpa: v.gpa ? Number(v.gpa) : null,
       gpaScale: v.gpa ? Number(v.gpaScale) : null,
       skills: v.skills.split(",").map((x) => x.trim()).filter(Boolean),
@@ -88,6 +89,7 @@ function StudentProfileForm({ user, onSaved }: { user: AdminUserDetails; onSaved
       <Field label="الرقم الجامعي" name="universityId" required defaultValue={s.universityId} dir="ltr" />
       <UniversityField defaultValue={s.university} />
       <Field label="التخصص" name="major" required defaultValue={s.major} />
+      <DegreeField defaultValue={s.degree} />
       <GpaField defaultValue={s.gpa} defaultScale={s.gpaScale} />
       <div className="sm:col-span-2"><Field label="المهارات (مفصولة بفواصل)" name="skills" defaultValue={s.skills.join(", ")} dir="ltr" /></div>
       <div className="space-y-2 sm:col-span-2">
@@ -257,7 +259,7 @@ export function AdminUsers() {
                     </td>
                     <td>{ROLE_LABELS[u.role]}</td>
                     <td className="text-gray-600 dark:text-gray-300">
-                      {u.student && `${u.student.university} · ${u.student.major}`}
+                      {u.student && [u.student.university, u.student.degree && DEGREES[u.student.degree], u.student.major].filter(Boolean).join(" · ")}
                       {u.company && u.company.name}
                     </td>
                     <td className="whitespace-nowrap">{formatDate(u.createdAt)}</td>

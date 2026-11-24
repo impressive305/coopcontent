@@ -2,6 +2,9 @@ export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000
 
 export type Role = "STUDENT" | "SUPERVISOR" | "COMPANY" | "ADMIN";
 
+export type Degree = "DIPLOMA" | "BACHELOR";
+export const DEGREES: Record<Degree, string> = { DIPLOMA: "دبلوم", BACHELOR: "بكالوريوس" };
+
 export class ApiError extends Error {
   constructor(public status: number, message: string, public details?: unknown) {
     super(message);
@@ -76,7 +79,7 @@ export type User = {
   role: Role;
   isActive?: boolean;
   createdAt?: string;
-  student?: { major: string; university: string; universityId: string; gpa: string | null; gpaScale: number | null; skills: string[] } | null;
+  student?: { major: string; university: string; universityId: string; degree: Degree | null; gpa: string | null; gpaScale: number | null; skills: string[] } | null;
   company?: { id: number; name: string; verified: boolean; reviewStatus?: CompanyReview } | null;
 };
 
@@ -132,7 +135,7 @@ export type Application = {
   coverLetter?: string | null;
   createdAt: string;
   opportunity?: Opportunity;
-  student?: { major: string; university: string; gpa?: string | null; gpaScale?: number | null; skills: string[]; user: { name: string; email: string } };
+  student?: { major: string; university: string; degree?: Degree | null; gpa?: string | null; gpaScale?: number | null; skills: string[]; user: { name: string; email: string } };
 };
 
 export type Placement = {

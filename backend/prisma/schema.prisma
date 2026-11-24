@@ -26,6 +26,12 @@ enum PlacementStatus {
   COMPLETED
 }
 
+// The degree the student is studying for.
+enum Degree {
+  DIPLOMA
+  BACHELOR
+}
+
 enum ReportType {
   WEEKLY
   FINAL
@@ -92,6 +98,8 @@ model Student {
   universityId String   @unique @map("university_id")
   university   String
   major        String
+  // Required at sign-up; null only for accounts created before it was asked.
+  degree       Degree?
   gpa          Decimal? @db.Decimal(3, 2)
   // 4 or 5: Saudi universities grade on either scale.
   gpaScale     Int?     @map("gpa_scale")

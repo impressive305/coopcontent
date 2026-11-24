@@ -10,6 +10,7 @@ const student = {
   universityId: '441000123',
   university: 'KSU',
   major: 'علوم الحاسب',
+  degree: 'BACHELOR',
   skills: ['React'],
 };
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { DEGREES, type Degree } from "@/lib/api";
 import { MAJOR_SUGGESTIONS } from "@/lib/majors";
 import { ALL_UNIVERSITIES, UNIVERSITIES } from "@/lib/universities";
 import { Field, Select } from "./ui";
@@ -40,6 +41,16 @@ export function GpaField({ defaultValue, defaultScale }: { defaultValue?: string
         <option value="4">4</option>
       </Select>
     </div>
+  );
+}
+
+// Diploma or bachelor's. Required: older accounts without one must pick it on their next save.
+export function DegreeField({ defaultValue }: { defaultValue?: Degree | null }) {
+  return (
+    <Select label="الدرجة العلمية" name="degree" required defaultValue={defaultValue ?? ""}>
+      <option value="" disabled>اختر الدرجة</option>
+      {(Object.keys(DEGREES) as Degree[]).map((d) => <option key={d} value={d}>{DEGREES[d]}</option>)}
+    </Select>
   );
 }
 

@@ -31,6 +31,7 @@ const describeContext = (ctx) => {
     `Duration: ${ctx.durationWeeks} weeks, about ${ctx.hoursPerWeek} hours per week`,
     ctx.startDate && `Start date: ${ctx.startDate.toISOString().slice(0, 10)}`,
     ctx.university && `University: ${ctx.university}`,
+    ctx.degree && `Degree: ${ctx.degree === 'DIPLOMA' ? 'Diploma' : "Bachelor's"}`,
     ctx.currentSkills?.length && `Skills the student already has: ${ctx.currentSkills.join(', ')}`,
     ctx.company && `Training organization: ${ctx.company}`,
     ctx.opportunity && `Opportunity: ${ctx.opportunity.title} — ${ctx.opportunity.description}`,
