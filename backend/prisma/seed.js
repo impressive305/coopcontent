@@ -2,7 +2,7 @@ import 'dotenv/config';
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
 import { readFile } from 'node:fs/promises';
-import { COOP_COMPANIES } from './companies.js';
+import { COOP_COMPANIES, TRAINING_PLATFORMS } from './companies.js';
 import { parseLogo } from '../src/lib/logos.js';
 import { BCRYPT_ROUNDS } from '../src/lib/auth.js';
 
@@ -46,9 +46,11 @@ const company = await prisma.company.update({
   },
 });
 
-// Real organizations with co-op programs, managed by the admin from then on.
-// Logos go through the same validation as uploads.
-for (const { logo, ...c } of COOP_COMPANIES) {
+// Real organizations with co-op programs and recognized training platforms,
+// managed by the admin from then on. Only missing ones are added, so re-running
+// the seed never overwrites the admin's edits. Logos go through the same
+// validation as uploads.
+for (const { logo, ...c } of [...COOP_COMPANIES, ...TRAINING_PLATFORMS]) {
   const existing = await prisma.company.findFirst({ where: { name: c.name }, include: { logo: { select: { companyId: true } } } });
   const company = existing ?? (await prisma.company.create({ data: { ...c, verified: true, reviewStatus: 'APPROVED', reviewedAt: new Date() } }));
   if (logo && !existing?.logo) {
