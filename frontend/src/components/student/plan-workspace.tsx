@@ -93,7 +93,7 @@ function TaskRow({ task, onChange, onRemove }: { task: PlanTask; onChange: (t: P
   const kind = task.kind ?? "field";
   return (
     <li className="group flex items-start gap-2 rounded-xl px-2 py-1 hover:bg-muted">
-      <input type="checkbox" aria-label="تم الإنجاز" checked={task.done} onChange={(e) => onChange({ ...task, done: e.target.checked })} className="mt-2 size-4 shrink-0 accent-teal-700" />
+      <input type="checkbox" aria-label="تم الإنجاز" checked={task.done} onChange={(e) => onChange({ ...task, done: e.target.checked })} className="mt-2 size-4 shrink-0 accent-brand" />
       <InlineText value={task.title} onChange={(title) => onChange({ ...task, title })} placeholder="اكتب المهمة" maxLength={500} aria-label="المهمة" className={cx("text-sm leading-6", task.done && "text-subtle line-through")} />
       <span className="mt-1.5"><KindPill kind={kind} onClick={() => onChange({ ...task, kind: kind === "field" ? "learning" : "field" })} /></span>
       <button type="button" aria-label="حذف المهمة" onClick={onRemove} className="mt-1 rounded-md p-1 text-subtle opacity-0 group-hover:opacity-100 hover:text-red-600 focus:opacity-100"><Trash2 className="size-4" /></button>
@@ -421,11 +421,11 @@ export function PlanWorkspace({ plan, onReplace, onNew }: { plan: TrainingPlan; 
           <div className="mt-5 space-y-2 border-t border-line pt-5">
             <div className="flex h-2 overflow-hidden rounded-full bg-muted">
               <div className="bg-brand" style={{ width: `${(kinds.field / kindTotal) * 100}%` }} />
-              <div className="bg-sky-400" style={{ width: `${(kinds.learning / kindTotal) * 100}%` }} />
+              <div className="bg-violet-400" style={{ width: `${(kinds.learning / kindTotal) * 100}%` }} />
             </div>
             <p className="flex flex-wrap gap-x-5 text-xs text-subtle">
               <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-brand" />{TASK_KINDS.field}: {kinds.field} مهمة ({Math.round((kinds.field / kindTotal) * 100)}%)</span>
-              <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-sky-400" />{TASK_KINDS.learning}: {kinds.learning} مهمة ({Math.round((kinds.learning / kindTotal) * 100)}%)</span>
+              <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-violet-400" />{TASK_KINDS.learning}: {kinds.learning} مهمة ({Math.round((kinds.learning / kindTotal) * 100)}%)</span>
             </p>
           </div>
         )}

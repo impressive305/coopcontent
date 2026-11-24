@@ -5,7 +5,7 @@ import { BadgeCheck, ImagePlus, Trash2 } from "lucide-react";
 import { api, logoUrl } from "@/lib/api";
 import { Alert, Button, cx, useAction } from "./ui";
 
-const FALLBACK_COLORS = ["bg-teal-600", "bg-sky-600", "bg-violet-600", "bg-amber-600", "bg-rose-600", "bg-emerald-600", "bg-indigo-600"];
+const FALLBACK_COLORS = ["bg-blue-600", "bg-sky-600", "bg-violet-600", "bg-amber-600", "bg-rose-600", "bg-emerald-600", "bg-indigo-600"];
 
 // The company's logo, or its first letter on a stable color when it has none.
 // Falls back to the letter when the image cannot load (e.g. not served before the company is verified).

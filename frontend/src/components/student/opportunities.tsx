@@ -74,7 +74,7 @@ function CompanyDetails({ id, canApply, onClose }: { id: number; canApply: boole
                 <section>
                   <h3 className="mb-2 text-sm font-semibold">التخصصات المطلوبة</h3>
                   <div className="flex flex-wrap gap-1.5">
-                    {c.majors.map((m) => <span key={m} className="rounded-full bg-teal-50 px-2.5 py-0.5 text-xs text-teal-800 dark:bg-teal-500/15 dark:text-teal-100">{m}</span>)}
+                    {c.majors.map((m) => <span key={m} className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs text-blue-800 dark:bg-blue-500/15 dark:text-blue-100">{m}</span>)}
                   </div>
                 </section>
               )}
@@ -178,9 +178,9 @@ export function OpportunitiesBrowser() {
 
   return (
     <>
-      <section className="rounded-3xl bg-gradient-to-l from-teal-700 to-teal-900 p-6 text-white sm:p-8">
+      <section className="rounded-3xl bg-gradient-to-l from-blue-700 to-blue-900 p-6 text-white sm:p-8">
         <h2 className="text-xl font-bold">جهات تستقبل متدربي التدريب التعاوني</h2>
-        <p className="mt-2 max-w-2xl text-sm leading-7 text-teal-50/90">اطّلع على تفاصيل كل جهة وشروطها، ثم قدّم من صفحتها الرسمية أو بريدها. بعض الجهات تنشر فرصها على المنصة أيضاً.</p>
+        <p className="mt-2 max-w-2xl text-sm leading-7 text-blue-50/90">اطّلع على تفاصيل كل جهة وشروطها، ثم قدّم من صفحتها الرسمية أو بريدها. بعض الجهات تنشر فرصها على المنصة أيضاً.</p>
         {companies.data && <p className="mt-4 text-sm font-semibold">{companies.data.length} جهة متاحة</p>}
       </section>
       <Card>
@@ -202,7 +202,7 @@ export function OpportunitiesBrowser() {
           </Select>
         </div>
         <label className="mt-4 inline-flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={accreditedOnly} onChange={(e) => setAccreditedOnly(e.target.checked)} className="size-4 accent-teal-700" />
+          <input type="checkbox" checked={accreditedOnly} onChange={(e) => setAccreditedOnly(e.target.checked)} className="size-4 accent-brand" />
           الجهات المعتمدة فقط <AccreditedBadge compact />
         </label>
       </Card>

@@ -146,13 +146,13 @@ export function StudentOverview() {
 
   return (
     <>
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-l from-teal-700 to-teal-900 p-6 text-white sm:p-8">
-        <div aria-hidden className="absolute -top-20 -left-10 size-72 rounded-full bg-teal-300/20 blur-3xl" />
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-l from-blue-700 to-blue-900 p-6 text-white sm:p-8">
+        <div aria-hidden className="absolute -top-20 -left-10 size-72 rounded-full bg-blue-300/20 blur-3xl" />
         <div className="relative flex flex-wrap items-end justify-between gap-6">
           <div>
-            <p className="text-sm text-teal-100/80">{student?.major}{student?.university && ` · ${student.university}`}</p>
+            <p className="text-sm text-blue-100/80">{student?.major}{student?.university && ` · ${student.university}`}</p>
             <h2 className="mt-1 text-2xl font-bold sm:text-3xl">أهلاً، {user?.name.split(" ")[0]}</h2>
-            <p className="mt-2 max-w-xl text-sm leading-7 text-teal-50/90">
+            <p className="mt-2 max-w-xl text-sm leading-7 text-blue-50/90">
               {plan && weekNo
                 ? `أنت في الأسبوع ${weekNo} من خطتك. ${progress!.percent >= 50 ? "تقدّم رائع، حافظ على الإيقاع." : "خطوة كل يوم تصنع فرقاً في نهاية التدريب."}`
                 : "ابدأ رحلتك: اختر جهة تدريب، وابنِ خطتك، ونظّم أسابيعك."}
@@ -161,7 +161,7 @@ export function StudentOverview() {
           {progress && (
             <div className="flex items-center gap-4 rounded-2xl bg-white/10 px-5 py-4 ring-1 ring-white/15">
               <span className="text-3xl font-bold">{progress.percent}%</span>
-              <span className="text-xs leading-5 text-teal-50/80">إنجاز الخطة<br />{progress.done} من {progress.total} مهمة</span>
+              <span className="text-xs leading-5 text-blue-50/80">إنجاز الخطة<br />{progress.done} من {progress.total} مهمة</span>
             </div>
           )}
         </div>

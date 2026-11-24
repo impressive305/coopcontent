@@ -157,7 +157,7 @@ function UserDetails({ id, onChanged, onClose }: { id: number; onChanged: () => 
                           <span className="font-medium">{p.title}</span>
                           <span className="block text-xs text-gray-500">{p.durationWeeks} أسبوعاً · {SOURCE_LABELS[p.source]} · {formatDate(p.createdAt)} · {p.progress.done}/{p.progress.total} مهمة منجزة</span>
                         </span>
-                        {p.isActive && <span className="rounded-full bg-teal-50 px-2 py-0.5 text-xs text-teal-800 dark:bg-teal-500/15 dark:text-teal-100">الخطة الحالية</span>}
+                        {p.isActive && <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-800 dark:bg-blue-500/15 dark:text-blue-100">الخطة الحالية</span>}
                       </li>
                     ))}
                   </ul>

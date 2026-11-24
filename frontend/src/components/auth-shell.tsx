@@ -38,11 +38,11 @@ export function AuthShell({ title, subtitle, children, footer, wide }: { title: 
         </div>
       </main>
 
-      <aside className="relative hidden overflow-hidden bg-gradient-to-b from-teal-800 via-teal-900 to-[#06302c] p-10 text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col lg:justify-between">
-        <div aria-hidden className="absolute -top-24 -left-24 size-96 rounded-full bg-teal-400/20 blur-3xl" />
-        <div aria-hidden className="absolute -bottom-32 -right-16 size-96 rounded-full bg-emerald-300/10 blur-3xl" />
+      <aside className="relative hidden overflow-hidden bg-gradient-to-b from-blue-800 via-blue-900 to-[#06302c] p-10 text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col lg:justify-between">
+        <div aria-hidden className="absolute -top-24 -left-24 size-96 rounded-full bg-blue-400/20 blur-3xl" />
+        <div aria-hidden className="absolute -bottom-32 -right-16 size-96 rounded-full bg-indigo-300/15 blur-3xl" />
         <div className="relative">
-          <p className="text-sm font-medium text-teal-200">منصة التدريب التعاوني</p>
+          <p className="text-sm font-medium text-blue-200">منصة التدريب التعاوني</p>
           <h2 className="mt-3 text-3xl leading-tight font-bold">من البحث عن جهة التدريب حتى التقرير النهائي، في مكان واحد.</h2>
         </div>
         <ul className="relative space-y-6">
@@ -51,12 +51,12 @@ export function AuthShell({ title, subtitle, children, footer, wide }: { title: 
               <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-white/10 ring-1 ring-white/15"><Icon className="size-5" /></span>
               <span>
                 <span className="block font-semibold">{title}</span>
-                <span className="mt-1 block text-sm leading-6 text-teal-100/80">{text}</span>
+                <span className="mt-1 block text-sm leading-6 text-blue-100/80">{text}</span>
               </span>
             </li>
           ))}
         </ul>
-        <p className="relative text-xs text-teal-200/70">بياناتك محمية: كلمات المرور مشفّرة، وكل مستخدم يرى ما يخصه فقط.</p>
+        <p className="relative text-xs text-blue-200/70">بياناتك محمية: كلمات المرور مشفّرة، وكل مستخدم يرى ما يخصه فقط.</p>
       </aside>
     </div>
   );

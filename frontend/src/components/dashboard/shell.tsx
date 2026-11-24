@@ -75,7 +75,7 @@ function Sidebar({ user, onNavigate }: { user: User; onNavigate?: () => void }) 
   };
 
   return (
-    <div className="flex h-full flex-col bg-gradient-to-b from-[#0b2f2c] to-[#071d1b] text-teal-50">
+    <div className="flex h-full flex-col bg-gradient-to-b from-[#0c2a66] to-[#06173d] text-blue-50">
       <Link href="/" className="flex items-center gap-2.5 px-5 pt-6 pb-8 text-lg font-bold" onClick={onNavigate}>
         <span className="grid size-9 place-items-center rounded-xl bg-white/10 ring-1 ring-white/15"><Route className="size-[18px]" /></span>
         CoopConnect
@@ -83,7 +83,7 @@ function Sidebar({ user, onNavigate }: { user: User; onNavigate?: () => void }) 
       <nav className="flex-1 space-y-6 overflow-y-auto px-3" aria-label="القائمة الرئيسية">
         {navByRole[user.role].map((group, i) => (
           <div key={group.title ?? i}>
-            {group.title && <p className="mb-2 px-3 text-[11px] font-semibold tracking-wide text-teal-200/50">{group.title}</p>}
+            {group.title && <p className="mb-2 px-3 text-[11px] font-semibold tracking-wide text-blue-200/50">{group.title}</p>}
             <ul className="space-y-1">
               {group.items.map(({ href, label, icon: Icon, badge }) => {
                 const active = isActive(href, pathname);
@@ -96,13 +96,13 @@ function Sidebar({ user, onNavigate }: { user: User; onNavigate?: () => void }) 
                       aria-current={active ? "page" : undefined}
                       className={cx(
                         "relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition",
-                        active ? "bg-white/10 font-semibold text-white" : "text-teal-100/75 hover:bg-white/5 hover:text-white",
+                        active ? "bg-white/10 font-semibold text-white" : "text-blue-100/75 hover:bg-white/5 hover:text-white",
                       )}
                     >
-                      {active && <span aria-hidden className="absolute inset-y-2 start-0 w-1 rounded-full bg-teal-300" />}
+                      {active && <span aria-hidden className="absolute inset-y-2 start-0 w-1 rounded-full bg-blue-300" />}
                       <Icon className="size-[18px]" />
                       <span className="flex-1">{label}</span>
-                      {badge && <span className="rounded-full bg-teal-400/20 px-2 py-0.5 text-[10px] font-semibold text-teal-100">{badge}</span>}
+                      {badge && <span className="rounded-full bg-blue-400/20 px-2 py-0.5 text-[10px] font-semibold text-blue-100">{badge}</span>}
                       {!!count && <span aria-label={`${count} بانتظار المراجعة`} className="grid min-w-5 place-items-center rounded-full bg-amber-400 px-1.5 text-[11px] font-bold text-amber-950">{count}</span>}
                     </Link>
                   </li>
@@ -114,15 +114,15 @@ function Sidebar({ user, onNavigate }: { user: User; onNavigate?: () => void }) 
       </nav>
       <div className="m-3 rounded-2xl bg-white/5 p-3 ring-1 ring-white/10">
         <div className="mb-3 flex items-center gap-3">
-          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-teal-400/20 text-sm font-bold text-teal-100">{user.name.trim().charAt(0)}</span>
+          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-blue-400/20 text-sm font-bold text-blue-100">{user.name.trim().charAt(0)}</span>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold">{user.name}</p>
-            <p className="truncate text-xs text-teal-200/60">{roleLabels[user.role]}</p>
+            <p className="truncate text-xs text-blue-200/60">{roleLabels[user.role]}</p>
           </div>
         </div>
         <button
           onClick={async () => { await logout(); router.push("/login"); }}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 py-2 text-sm text-teal-100/80 transition hover:bg-white/5 hover:text-white"
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 py-2 text-sm text-blue-100/80 transition hover:bg-white/5 hover:text-white"
         >
           <LogOut className="size-4" /> تسجيل الخروج
         </button>
@@ -148,7 +148,7 @@ export function DashboardShell({ user, children }: { user: User; children: React
         <div className="fixed inset-0 z-40 lg:hidden">
           <button aria-label="إغلاق القائمة" className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} />
           <aside className="absolute inset-y-0 start-0 w-72 shadow-2xl">
-            <button aria-label="إغلاق القائمة" onClick={() => setOpen(false)} className="absolute end-3 top-6 z-10 rounded-lg p-1 text-teal-100 hover:bg-white/10"><X className="size-5" /></button>
+            <button aria-label="إغلاق القائمة" onClick={() => setOpen(false)} className="absolute end-3 top-6 z-10 rounded-lg p-1 text-blue-100 hover:bg-white/10"><X className="size-5" /></button>
             <Sidebar user={user} onNavigate={() => setOpen(false)} />
           </aside>
         </div>

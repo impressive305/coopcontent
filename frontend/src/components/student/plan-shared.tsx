@@ -5,14 +5,15 @@ import { TASK_KINDS, type PlanContent, type PlanTask, type TaskKind, type Traini
 import { cx } from "../ui";
 
 export const KIND_STYLES: Record<TaskKind, string> = {
-  field: "bg-teal-50 text-teal-800 ring-teal-600/15 dark:bg-teal-500/15 dark:text-teal-100 dark:ring-teal-400/20",
-  learning: "bg-sky-50 text-sky-800 ring-sky-600/15 dark:bg-sky-500/15 dark:text-sky-100 dark:ring-sky-400/20",
+  field: "bg-blue-50 text-blue-800 ring-blue-600/15 dark:bg-blue-500/15 dark:text-blue-100 dark:ring-blue-400/20",
+  // Violet, so self-learning stays distinct from the blue of field work.
+  learning: "bg-violet-50 text-violet-800 ring-violet-600/15 dark:bg-violet-500/15 dark:text-violet-100 dark:ring-violet-400/20",
 };
 
 export const KIND_ICONS = { field: Briefcase, learning: BookOpen } as const;
 
 export const SOURCE_BADGES = {
-  AI: { icon: Bot, label: "مسودة بالذكاء الاصطناعي", className: "bg-violet-50 text-violet-800 dark:bg-violet-500/15 dark:text-violet-100" },
+  AI: { icon: Bot, label: "مسودة بالذكاء الاصطناعي", className: "bg-fuchsia-50 text-fuchsia-800 dark:bg-fuchsia-500/15 dark:text-fuchsia-100" },
   ENGINE: { icon: Cpu, label: "مسودة جاهزة", className: "bg-muted text-subtle" },
   MANUAL: { icon: PencilRuler, label: "من إعدادك", className: "bg-amber-50 text-amber-800 dark:bg-amber-500/15 dark:text-amber-100" },
 } as const;
@@ -35,7 +36,7 @@ export function TaskItem({ task, busy, onToggle }: { task: PlanTask; busy: boole
   return (
     <li>
       <label className="flex cursor-pointer items-start gap-3 rounded-xl p-2 text-sm hover:bg-muted">
-        <input type="checkbox" checked={task.done} disabled={busy} onChange={(e) => onToggle(task.id, e.target.checked)} className="mt-0.5 size-4 shrink-0 accent-teal-700" />
+        <input type="checkbox" checked={task.done} disabled={busy} onChange={(e) => onToggle(task.id, e.target.checked)} className="mt-0.5 size-4 shrink-0 accent-brand" />
         <span className={cx("flex-1 leading-6", task.done && "text-subtle line-through")}>{task.title}</span>
         <KindPill kind={task.kind ?? "field"} />
       </label>

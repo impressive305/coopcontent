@@ -12,6 +12,10 @@
   --line: rgb(15 23 42 / 0.09);
   --foreground: #0f1b24;
   --subtle: #5d6b76;
+  /* Brand blue: white text on it is 6.7:1 (WCAG AA). */
+  --brand: #1d4ed8;
+  --brand-dark: #1e40af;
+  --brand-soft: rgb(29 78 216 / 0.1);
   color-scheme: light;
 }
 
@@ -22,6 +26,10 @@
   --line: rgb(255 255 255 / 0.08);
   --foreground: #e6edf2;
   --subtle: #93a3b0;
+  /* Lighter blue so brand text stays readable on dark surfaces; white on it is 5.2:1. */
+  --brand: #2563eb;
+  --brand-dark: #1d4ed8;
+  --brand-soft: rgb(59 130 246 / 0.16);
   color-scheme: dark;
 }
 
@@ -32,9 +40,9 @@
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-subtle: var(--subtle);
-  --color-brand: #0f766e;
-  --color-brand-dark: #115e59;
-  --color-brand-soft: rgb(15 118 110 / 0.1);
+  --color-brand: var(--brand);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-soft: var(--brand-soft);
   --font-sans: var(--font-plex), "Segoe UI", Tahoma, "Geeza Pro", system-ui, sans-serif;
 }
 
@@ -45,5 +53,5 @@ body {
 }
 
 ::selection {
-  background: rgb(15 118 110 / 0.2);
+  background: rgb(29 78 216 / 0.2);
 }

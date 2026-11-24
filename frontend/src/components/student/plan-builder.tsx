@@ -189,7 +189,7 @@ function BuilderForm({ catalog, onCreated, onCancel }: { catalog: PlanCatalog; o
               <div className="mt-4 space-y-4">
                 <Field label="ماذا تريد أن تحقق من تدريبك؟ (اختياري)" name="goals" textarea maxLength={1000} placeholder="مثال: أريد التعمق في إدارة الأنظمة الصحية والحصول على شهادة ITIL" />
                 <label className={cx("flex items-start gap-3 rounded-xl bg-muted p-4 text-sm", !catalog.aiAvailable && "opacity-70")}>
-                  <input type="checkbox" checked={aiOn} disabled={!catalog.aiAvailable} onChange={(e) => setUseAi(e.target.checked)} className="mt-1 size-4 accent-teal-700" />
+                  <input type="checkbox" checked={aiOn} disabled={!catalog.aiAvailable} onChange={(e) => setUseAi(e.target.checked)} className="mt-1 size-4 accent-brand" />
                   <span>
                     <span className="flex items-center gap-1.5 font-semibold"><Bot className="size-4 text-brand" />تخصيص المسودة بالذكاء الاصطناعي</span>
                     <span className="mt-0.5 block text-subtle">

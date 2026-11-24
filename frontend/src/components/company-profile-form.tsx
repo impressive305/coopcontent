@@ -40,7 +40,7 @@ export function CompanyProfileForm({ initial, submitLabel, onSubmit }: { initial
       <Field label="رقم التواصل (اختياري)" name="phone" maxLength={30} dir="ltr" defaultValue={initial?.phone ?? ""} />
       <Field label="التخصصات المطلوبة (مفصولة بفواصل)" name="majors" defaultValue={initial?.majors?.join("، ")} placeholder="علوم الحاسب، نظم المعلومات" />
       <label className="flex items-center gap-2 text-sm sm:col-span-2">
-        <input type="checkbox" name="coopOpen" defaultChecked={initial?.coopOpen ?? true} className="size-4 accent-teal-700" />
+        <input type="checkbox" name="coopOpen" defaultChecked={initial?.coopOpen ?? true} className="size-4 accent-brand" />
         التدريب التعاوني مفتوح حالياً (تظهر الجهة للطلاب)
       </label>
       <div className="space-y-3 sm:col-span-2">

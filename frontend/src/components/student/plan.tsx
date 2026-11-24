@@ -23,9 +23,9 @@ export function TrainingPlanPage() {
     return (
       <>
         {!current && (
-          <section className="rounded-3xl bg-gradient-to-l from-teal-700 to-teal-900 p-6 text-white sm:p-8">
+          <section className="rounded-3xl bg-gradient-to-l from-blue-700 to-blue-900 p-6 text-white sm:p-8">
             <h2 className="flex items-center gap-2 text-xl font-bold"><Bot className="size-6" />خطتك التدريبية تبدأ من هنا</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-7 text-teal-50/90">
+            <p className="mt-2 max-w-2xl text-sm leading-7 text-blue-50/90">
               اكتب تخصصك والمجال الذي ستتدرب فيه، أياً كان. خذ مسودة جاهزة تعدّلها، أو ابنِ خطتك بنفسك أسبوعاً بأسبوع،
               ووزّع وقتك بين التدريب الميداني والتعلّم الذاتي.
             </p>

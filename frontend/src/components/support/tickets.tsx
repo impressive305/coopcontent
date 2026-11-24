@@ -73,9 +73,9 @@ export function SupportTickets() {
 
   return (
     <>
-      <section className="rounded-3xl bg-gradient-to-l from-teal-700 to-teal-900 p-6 text-white sm:p-8">
+      <section className="rounded-3xl bg-gradient-to-l from-blue-700 to-blue-900 p-6 text-white sm:p-8">
         <h2 className="flex items-center gap-2 text-xl font-bold"><LifeBuoy className="size-6" />الدعم الفني</h2>
-        <p className="mt-2 max-w-2xl text-sm leading-7 text-teal-50/90">
+        <p className="mt-2 max-w-2xl text-sm leading-7 text-blue-50/90">
           واجهتك مشكلة تقنية في المنصة، أو تحتاج شرحاً لخطوة ما؟ افتح تذكرة ويرد عليك فريق إدارة المنصة هنا، وتصلك الردود في نفس التذكرة.
         </p>
       </section>

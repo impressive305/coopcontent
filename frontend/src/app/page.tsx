@@ -97,7 +97,7 @@ export default function Home() {
           <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,rgba(15,118,110,0.14),transparent_60%)]" />
           <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 lg:grid-cols-2 lg:py-24">
             <div className="space-y-6">
-              <span className="inline-flex items-center gap-2 rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-800 dark:bg-teal-500/15 dark:text-teal-100">
+              <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-800 dark:bg-blue-500/15 dark:text-blue-100">
                 <GraduationCap className="size-4" /> منصة التدريب التعاوني للجامعات السعودية
               </span>
               <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">
@@ -107,7 +107,7 @@ export default function Home() {
                 CoopConnect تربط الطالب بجهات التدريب، وتبني لكل طالب خطة تدريب أسبوعية ذكية تناسب تخصصه، وتؤتمت التقارير والتقييمات من البداية إلى النهاية.
               </p>
               <div className="flex flex-wrap gap-3">
-                <Link href="/register" className="inline-flex items-center gap-2 rounded-xl bg-brand px-6 py-3 font-semibold text-white shadow-lg shadow-teal-900/20 hover:bg-brand-dark">
+                <Link href="/register" className="inline-flex items-center gap-2 rounded-xl bg-brand px-6 py-3 font-semibold text-white shadow-lg shadow-blue-900/20 hover:bg-brand-dark">
                   أنشئ حسابك <ArrowLeft className="size-4" />
                 </Link>
                 <a href="#ai-plan" className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-6 py-3 font-semibold hover:bg-gray-50 dark:border-white/15 dark:bg-white/5">
@@ -146,8 +146,8 @@ export default function Home() {
                 {pains.map((p) => <li key={p} className="flex gap-2 text-sm"><X className="mt-0.5 size-4 shrink-0 text-red-500" />{p}</li>)}
               </ul>
             </div>
-            <div className="rounded-2xl border border-teal-100 bg-teal-50/60 p-6 dark:border-teal-500/20 dark:bg-teal-500/5">
-              <h3 className="mb-4 font-bold text-teal-900 dark:text-teal-200">مع CoopConnect</h3>
+            <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-6 dark:border-blue-500/20 dark:bg-blue-500/5">
+              <h3 className="mb-4 font-bold text-blue-900 dark:text-blue-200">مع CoopConnect</h3>
               <ul className="space-y-3">
                 {gains.map((g) => <li key={g} className="flex gap-2 text-sm"><Check className="mt-0.5 size-4 shrink-0 text-brand" />{g}</li>)}
               </ul>
@@ -162,7 +162,7 @@ export default function Home() {
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {features.map(([Icon, title, body]) => (
                 <div key={title} className="rounded-2xl border border-black/5 p-5 transition hover:-translate-y-0.5 hover:shadow-lg dark:border-white/10">
-                  <span className="mb-4 grid size-11 place-items-center rounded-xl bg-teal-50 text-brand dark:bg-teal-500/15"><Icon className="size-5" /></span>
+                  <span className="mb-4 grid size-11 place-items-center rounded-xl bg-blue-50 text-brand dark:bg-blue-500/15"><Icon className="size-5" /></span>
                   <h3 className="mb-2 font-bold">{title}</h3>
                   <p className="text-sm leading-6 text-gray-600 dark:text-gray-300">{body}</p>
                 </div>
@@ -175,7 +175,7 @@ export default function Home() {
         <section id="ai-plan" className="scroll-mt-20 py-20">
           <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 lg:grid-cols-2">
             <div>
-              <span className="mb-3 inline-flex items-center gap-2 rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-800 dark:bg-teal-500/15 dark:text-teal-100"><Bot className="size-4" /> المساعد الذكي</span>
+              <span className="mb-3 inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-800 dark:bg-blue-500/15 dark:text-blue-100"><Bot className="size-4" /> المساعد الذكي</span>
               <h2 className="mb-4 text-3xl font-bold leading-snug">خطة تدريب احترافية تناسب تخصصك، في أقل من دقيقة</h2>
               <p className="mb-8 leading-8 text-gray-600 dark:text-gray-300">
                 بدلاً من خطة عامة تُكتب مرة وتُنسى، يبني المساعد الذكي خطة أسبوعية حقيقية: لكل أسبوع محور وأهداف ومهام قابلة للقياس ومخرَج واضح ومهارات مستهدفة، تتدرج من التهيئة إلى مشروع تطبيقي يناسب مسارك.
@@ -200,7 +200,7 @@ export default function Home() {
         </section>
 
         {/* Roles */}
-        <section id="roles" className="scroll-mt-20 bg-gradient-to-b from-teal-50/70 to-transparent py-20 dark:from-teal-500/5">
+        <section id="roles" className="scroll-mt-20 bg-gradient-to-b from-blue-50/70 to-transparent py-20 dark:from-blue-500/5">
           <div className="mx-auto max-w-6xl px-4">
             <SectionHeading eyebrow="لمن المنصة" title="لوحة مخصّصة لكل طرف في التدريب" />
             <RoleTabs />
@@ -213,7 +213,7 @@ export default function Home() {
           <ol className="grid gap-5 md:grid-cols-5">
             {steps.map(([title, body], i) => (
               <li key={title} className="relative rounded-2xl border border-black/5 bg-white p-5 dark:border-white/10 dark:bg-white/5">
-                <span className="mb-3 block text-3xl font-extrabold text-teal-200 dark:text-teal-500/40">{String(i + 1).padStart(2, "0")}</span>
+                <span className="mb-3 block text-3xl font-extrabold text-blue-200 dark:text-blue-500/40">{String(i + 1).padStart(2, "0")}</span>
                 <h3 className="mb-2 font-bold">{title}</h3>
                 <p className="text-sm leading-6 text-gray-600 dark:text-gray-300">{body}</p>
               </li>
@@ -240,9 +240,9 @@ export default function Home() {
 
         {/* Vision + privacy */}
         <section className="mx-auto grid max-w-6xl gap-6 px-4 py-20 md:grid-cols-2">
-          <div className="rounded-2xl bg-teal-900 p-8 text-teal-50">
+          <div className="rounded-2xl bg-blue-900 p-8 text-blue-50">
             <h3 className="mb-3 text-xl font-bold">انسجاماً مع رؤية المملكة 2030</h3>
-            <p className="leading-7 text-teal-100">
+            <p className="leading-7 text-blue-100">
               تدعم المنصة برنامج تنمية القدرات البشرية بمواءمة مخرجات التعليم مع احتياجات سوق العمل، وتسهم في التحول الرقمي للإجراءات الأكاديمية، وتسهّل انتقال الخريجين من التدريب إلى التوظيف.
             </p>
           </div>
@@ -276,11 +276,11 @@ export default function Home() {
 
         {/* CTA */}
         <section className="mx-auto max-w-6xl px-4 py-20">
-          <div className="flex flex-col items-center gap-6 rounded-3xl bg-gradient-to-l from-teal-700 to-teal-900 px-6 py-14 text-center text-white">
+          <div className="flex flex-col items-center gap-6 rounded-3xl bg-gradient-to-l from-blue-700 to-blue-900 px-6 py-14 text-center text-white">
             <h2 className="text-3xl font-bold">جاهز تبدأ تدريبك التعاوني بخطة واضحة؟</h2>
-            <p className="max-w-xl text-teal-100">أنشئ حسابك، واختر تخصصك، ودع المساعد الذكي يبني خطتك الأسبوعية.</p>
+            <p className="max-w-xl text-blue-100">أنشئ حسابك، واختر تخصصك، ودع المساعد الذكي يبني خطتك الأسبوعية.</p>
             <div className="flex flex-wrap justify-center gap-3">
-              <Link href="/register" className="rounded-xl bg-white px-6 py-3 font-semibold text-teal-900 hover:bg-teal-50">إنشاء حساب طالب</Link>
+              <Link href="/register" className="rounded-xl bg-white px-6 py-3 font-semibold text-blue-900 hover:bg-blue-50">إنشاء حساب طالب</Link>
               <Link href="/register" className="rounded-xl border border-white/40 px-6 py-3 font-semibold hover:bg-white/10">تسجيل جهة تدريب</Link>
             </div>
           </div>
@@ -324,7 +324,7 @@ function SamplePlan() {
       <p className="mb-5 text-xs text-gray-500">24 أسبوعاً · 40 ساعة أسبوعياً</p>
       <div className="mb-6 flex overflow-hidden rounded-lg text-[10px] font-medium text-white">
         {phases.map(([name, w], i) => (
-          <div key={name} style={{ flexGrow: w }} className={`px-1 py-2 text-center ${["bg-teal-400", "bg-teal-500", "bg-teal-600", "bg-teal-700", "bg-teal-800"][i]}`}>
+          <div key={name} style={{ flexGrow: w }} className={`px-1 py-2 text-center ${["bg-blue-400", "bg-blue-500", "bg-blue-600", "bg-blue-700", "bg-blue-800"][i]}`}>
             {name} · {w}
           </div>
         ))}
@@ -340,8 +340,8 @@ function SamplePlan() {
           ))}
         </ul>
         <div className="flex flex-wrap gap-2 border-t border-black/5 pt-3 text-xs dark:border-white/10">
-          <span className="rounded-full bg-teal-50 px-2 py-1 text-teal-800 dark:bg-teal-500/15 dark:text-teal-100">Git</span>
-          <span className="rounded-full bg-teal-50 px-2 py-1 text-teal-800 dark:bg-teal-500/15 dark:text-teal-100">التواصل المهني</span>
+          <span className="rounded-full bg-blue-50 px-2 py-1 text-blue-800 dark:bg-blue-500/15 dark:text-blue-100">Git</span>
+          <span className="rounded-full bg-blue-50 px-2 py-1 text-blue-800 dark:bg-blue-500/15 dark:text-blue-100">التواصل المهني</span>
           <span className="ms-auto text-gray-500">المخرَج: التقرير الأسبوعي رقم 16</span>
         </div>
       </div>

@@ -42,7 +42,7 @@ export function RoleTabs() {
         ))}
       </div>
       <div role="tabpanel" className="mx-auto grid max-w-4xl items-center gap-8 rounded-2xl border border-black/10 bg-white p-6 sm:p-10 md:grid-cols-[auto_1fr] dark:border-white/10 dark:bg-white/5">
-        <div className="grid size-20 place-items-center rounded-2xl bg-teal-50 text-brand dark:bg-teal-500/15"><Icon className="size-10" /></div>
+        <div className="grid size-20 place-items-center rounded-2xl bg-blue-50 text-brand dark:bg-blue-500/15"><Icon className="size-10" /></div>
         <div>
           <h3 className="mb-4 text-xl font-bold">{role.title}</h3>
           <ul className="grid gap-3 sm:grid-cols-2">
