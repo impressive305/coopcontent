@@ -12,6 +12,7 @@ import planRoutes from './routes/plans.js';
 import studentRoutes from './routes/students.js';
 import companyRoutes from './routes/companies.js';
 import logoRoutes from './routes/logos.js';
+import { adminTicketRoutes, ticketRoutes } from './routes/tickets.js';
 import { errorHandler } from './middleware/error.js';
 import { allowedOrigins, requireTrustedOrigin } from './middleware/origin.js';
 
@@ -27,7 +28,10 @@ export const createApp = () => {
 
   const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 50, standardHeaders: true, legacyHeaders: false });
   app.use('/api/auth', process.env.NODE_ENV === 'test' ? [] : authLimiter, authRoutes);
+  // Before /api/admin: it has its own admin-only guard.
+  app.use('/api/admin/tickets', adminTicketRoutes);
   app.use('/api/admin', adminRoutes);
+  app.use('/api/tickets', ticketRoutes);
   app.use('/api/opportunities', opportunityRoutes);
   app.use('/api/applications', applicationRoutes);
   app.use('/api/placements', placementRoutes);

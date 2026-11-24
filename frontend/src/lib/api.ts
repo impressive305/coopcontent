@@ -37,6 +37,11 @@ const ERROR_MESSAGES: Record<string, string> = {
   "Password must include letters and numbers": "كلمة المرور يجب أن تجمع أحرفاً وأرقاماً.",
   "Password is too common": "كلمة المرور شائعة وسهلة التخمين، اختر غيرها.",
   "Password must not contain your name or email": "كلمة المرور يجب ألا تحتوي على اسمك أو بريدك.",
+  "Too many open tickets": "لديك عدة تذاكر مفتوحة. أغلق ما حُلّ منها قبل فتح تذكرة جديدة.",
+  "Ticket is closed": "هذه التذكرة مغلقة.",
+  "Ticket not found": "التذكرة غير موجودة.",
+  "Ticket has reached its message limit": "وصلت التذكرة إلى الحد الأقصى من الرسائل. افتح تذكرة جديدة.",
+  "Too many requests": "طلبات كثيرة خلال وقت قصير، حاول بعد قليل.",
 };
 
 export async function api<T = unknown>(path: string, options: { method?: string; body?: unknown } = {}): Promise<T> {
@@ -236,6 +241,25 @@ export const tasksByKind = (plan: PlanContent) => {
   for (const t of plan.weeks.flatMap((w) => w.tasks)) counts[t.kind ?? "field"] += 1;
   return counts;
 };
+
+export type TicketCategory = "TECHNICAL" | "GUIDANCE" | "OTHER";
+export type TicketStatus = "OPEN" | "ANSWERED" | "CLOSED";
+export type TicketMessage = { id: number; body: string; fromStaff: boolean; createdAt: string; author?: { id: number; name: string } | null };
+export type TicketSummary = {
+  id: number;
+  subject: string;
+  category: TicketCategory;
+  status: TicketStatus;
+  createdAt: string;
+  updatedAt: string;
+  closedAt: string | null;
+  _count: { messages: number };
+  // Present in the admins' views only.
+  author?: { id: number; name: string; email: string; role: Role };
+};
+export type Ticket = TicketSummary & { messages: TicketMessage[] };
+
+export const TICKET_CATEGORIES: Record<TicketCategory, string> = { TECHNICAL: "مشكلة تقنية", GUIDANCE: "استفسار أو شرح", OTHER: "أخرى" };
 
 // Weeks of a placement that have already started, capped at its length.
 export const placementWeeksElapsed = (p: Pick<Placement, "startDate" | "endDate">) => {

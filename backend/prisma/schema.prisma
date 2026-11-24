@@ -52,6 +52,20 @@ enum ReportStatus {
   RETURNED
 }
 
+// Support tickets that users open with the system administrators.
+enum TicketCategory {
+  TECHNICAL
+  GUIDANCE
+  OTHER
+}
+
+// OPEN: waiting on an administrator. ANSWERED: waiting on the user. CLOSED: done.
+enum TicketStatus {
+  OPEN
+  ANSWERED
+  CLOSED
+}
+
 model User {
   id           Int      @id @default(autoincrement())
   name         String
@@ -66,6 +80,8 @@ model User {
   company         Company?
   supervisedUnits Placement[]   @relation("SupervisorPlacements")
   companyNotes    CompanyNote[]
+  tickets         Ticket[]
+  ticketMessages  TicketMessage[]
 
   @@map("users")
 }
@@ -227,6 +243,40 @@ model Report {
 
   @@unique([placementId, type, weekNo])
   @@map("reports")
+}
+
+model Ticket {
+  id        Int            @id @default(autoincrement())
+  authorId  Int            @map("author_id")
+  subject   String
+  category  TicketCategory
+  status    TicketStatus   @default(OPEN)
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
+  closedAt  DateTime?      @map("closed_at")
+
+  author   User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  messages TicketMessage[]
+
+  @@index([authorId])
+  @@index([status])
+  @@map("tickets")
+}
+
+model TicketMessage {
+  id        Int      @id @default(autoincrement())
+  ticketId  Int      @map("ticket_id")
+  authorId  Int?     @map("author_id")
+  // Recorded when written, so a later role change never rewrites who answered.
+  fromStaff Boolean  @map("from_staff")
+  body      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author User?  @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([ticketId])
+  @@map("ticket_messages")
 }
 
 model TrainingPlan {

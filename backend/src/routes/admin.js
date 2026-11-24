@@ -362,7 +362,7 @@ router.delete('/placements/:id', async (req, res) => {
 
 router.get('/stats', async (_req, res) => {
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  const [users, newUsers, suspended, companies, pendingCompanies, openOpportunities, applications, activePlacements, pendingReports, plans] =
+  const [users, newUsers, suspended, companies, pendingCompanies, openOpportunities, applications, activePlacements, pendingReports, plans, openTickets] =
     await Promise.all([
       prisma.user.groupBy({ by: ['role'], _count: true }),
       prisma.user.count({ where: { createdAt: { gte: weekAgo } } }),
@@ -374,6 +374,7 @@ router.get('/stats', async (_req, res) => {
       prisma.placement.count({ where: { status: 'ACTIVE' } }),
       prisma.report.count({ where: { status: 'SUBMITTED' } }),
       prisma.trainingPlan.count({ where: { isActive: true } }),
+      prisma.ticket.count({ where: { status: 'OPEN' } }),
     ]);
   const byRole = Object.fromEntries(users.map((u) => [u.role, u._count]));
   res.json({
@@ -388,6 +389,7 @@ router.get('/stats', async (_req, res) => {
     activePlacements,
     pendingReports,
     activePlans: plans,
+    openTickets,
   });
 });
 

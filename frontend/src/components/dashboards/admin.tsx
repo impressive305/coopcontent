@@ -18,6 +18,7 @@ type Stats = {
   activePlacements: number;
   pendingReports: number;
   activePlans: number;
+  openTickets: number;
 };
 
 function StatTiles({ stats }: { stats: Stats }) {
@@ -30,6 +31,7 @@ function StatTiles({ stats }: { stats: Stats }) {
     ["طلبات قيد المراجعة", stats.applications.PENDING ?? 0, "/dashboard/manage/opportunities"],
     ["متدربون حالياً", stats.activePlacements, "/dashboard/manage/placements"],
     ["تقارير بانتظار المراجعة", stats.pendingReports, "/dashboard/manage/placements"],
+    ["تذاكر دعم بانتظار الرد", stats.openTickets, "/dashboard/manage/tickets"],
     ["خطط تدريب نشطة", stats.activePlans, "/dashboard/manage/users"],
     ["حسابات موقوفة", stats.suspended, "/dashboard/manage/users"],
     ["حسابات الجهات", stats.users.COMPANY ?? 0, "/dashboard/manage/users"],

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import {
-  Briefcase, Building2, CalendarCheck, ClipboardList, FileText, GraduationCap, LayoutDashboard, LogOut, Menu, Route, UserRound, Users, X,
+  Briefcase, Building2, CalendarCheck, ClipboardList, FileText, GraduationCap, LayoutDashboard, LifeBuoy, LogOut, Menu, Route, UserRound, Users, X,
   type LucideIcon,
 } from "lucide-react";
 import type { Role, User } from "@/lib/api";
@@ -15,6 +15,8 @@ import { cx } from "../ui";
 
 type NavItem = { href: string; label: string; description: string; icon: LucideIcon; badge?: string };
 type NavGroup = { title?: string; items: NavItem[] };
+
+const supportItem: NavItem = { href: "/dashboard/support", label: "الدعم الفني", description: "تذاكرك مع فريق إدارة المنصة", icon: LifeBuoy };
 
 const navByRole: Record<Role, NavGroup[]> = {
   STUDENT: [
@@ -28,11 +30,20 @@ const navByRole: Record<Role, NavGroup[]> = {
         { href: "/dashboard/reports", label: "التقارير", description: "اكتب تقاريرك وتعلّم كيف تجعلها احترافية", icon: FileText },
       ],
     },
-    { title: "الحساب", items: [{ href: "/dashboard/profile", label: "الملف الشخصي", description: "بياناتك الأكاديمية ومهاراتك", icon: UserRound }] },
+    {
+      title: "الحساب",
+      items: [
+        { href: "/dashboard/profile", label: "الملف الشخصي", description: "بياناتك الأكاديمية ومهاراتك", icon: UserRound },
+        supportItem,
+      ],
+    },
   ],
-  COMPANY: [{ items: [{ href: "/dashboard", label: "لوحة الجهة", description: "ملف الجهة وفرصها ومتدربوها", icon: LayoutDashboard }] }],
+  COMPANY: [
+    { items: [{ href: "/dashboard", label: "لوحة الجهة", description: "ملف الجهة وفرصها ومتدربوها", icon: LayoutDashboard }] },
+    { title: "الحساب", items: [supportItem] },
+  ],
   // The supervisor role is paused (see lib/features.ts); its accounts cannot sign in.
-  SUPERVISOR: [{ items: [{ href: "/dashboard", label: "طلابي وتقاريرهم", description: "", icon: LayoutDashboard }] }],
+  SUPERVISOR: [{ items: [{ href: "/dashboard", label: "طلابي وتقاريرهم", description: "", icon: LayoutDashboard }, supportItem] }],
   ADMIN: [
     { items: [{ href: "/dashboard", label: "نظرة عامة", description: "مؤشرات المنصة وما يحتاج إلى إجراء", icon: LayoutDashboard }] },
     {
@@ -42,6 +53,7 @@ const navByRole: Record<Role, NavGroup[]> = {
         { href: "/dashboard/manage/companies", label: "جهات التدريب", description: "الدليل الذي يراه الطلاب، والاعتماد والشعارات", icon: Building2 },
         { href: "/dashboard/manage/opportunities", label: "الفرص والطلبات", description: "الفرص المنشورة على المنصة وطلبات الطلاب", icon: Briefcase },
         { href: "/dashboard/manage/placements", label: "حالات التدريب", description: "المتدربون الحاليون وتقاريرهم", icon: GraduationCap },
+        { href: "/dashboard/manage/tickets", label: "تذاكر الدعم", description: "مشكلات واستفسارات المستخدمين والرد عليها", icon: LifeBuoy },
       ],
     },
   ],
@@ -55,9 +67,12 @@ function Sidebar({ user, onNavigate }: { user: User; onNavigate?: () => void }) 
   const pathname = usePathname();
   const { logout } = useAuth();
   const router = useRouter();
-  // The admin sees how many company sign-up requests are waiting.
-  const stats = useData<{ pendingCompanies: number }>(user.role === "ADMIN" ? "/admin/stats" : null);
-  const counts: Record<string, number | undefined> = { "/dashboard/manage/companies": stats.data?.pendingCompanies };
+  // The admin sees how many company sign-up requests and support tickets are waiting.
+  const stats = useData<{ pendingCompanies: number; openTickets: number }>(user.role === "ADMIN" ? "/admin/stats" : null);
+  const counts: Record<string, number | undefined> = {
+    "/dashboard/manage/companies": stats.data?.pendingCompanies,
+    "/dashboard/manage/tickets": stats.data?.openTickets,
+  };
 
   return (
     <div className="flex h-full flex-col bg-gradient-to-b from-[#0b2f2c] to-[#071d1b] text-teal-50">

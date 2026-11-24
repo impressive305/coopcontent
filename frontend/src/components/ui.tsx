@@ -84,6 +84,9 @@ const statusLabels: Record<string, [string, keyof typeof tones]> = {
   REVIEW_CONTACTED: ["تم التواصل", "blue"],
   REVIEW_APPROVED: ["معتمدة", "green"],
   REVIEW_REJECTED: ["مرفوض", "red"],
+  TICKET_OPEN: ["بانتظار الرد", "amber"],
+  TICKET_ANSWERED: ["تم الرد", "blue"],
+  TICKET_CLOSED: ["مغلقة", "gray"],
 };
 
 export function StatusBadge({ status }: { status: string }) {
