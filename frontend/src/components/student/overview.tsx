@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowLeft, Briefcase, CalendarCheck, Check, ClipboardList, FileText, Flag, Lightbulb } from "lucide-react";
+import { ArrowLeft, Briefcase, CalendarCheck, Check, ClipboardList, Flag, Lightbulb } from "lucide-react";
 import {
   REFLECTION_MAX, REFLECTION_MIN, api, currentWeekNo, placementTitle, planProgress, weeksAwaitingReflection,
   type Application, type Placement, type Report, type TrainingPlan,
@@ -133,7 +133,6 @@ export function StudentOverview() {
   const student = user?.student;
 
   const progress = plan ? planProgress(plan.content) : null;
-  const approved = reports.data?.filter((r) => r.status === "APPROVED").length ?? 0;
   const returned = reports.data?.filter((r) => r.status === "RETURNED").length ?? 0;
   const weekNo = plan ? currentWeekNo(plan) : null;
 
@@ -170,11 +169,10 @@ export function StudentOverview() {
 
       {returned > 0 && <Alert tone="amber">لديك {returned} تقارير أُعيدت للتعديل. <Link href="/dashboard/reports" className="font-medium underline">راجعها الآن</Link></Alert>}
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-3">
         <Stat icon={Briefcase} label="حالة التدريب" value={placement ? (placement.status === "ACTIVE" ? "قيد التدريب" : "مكتمل") : "لم يبدأ"} hint={placement?.company.name ?? "لم يُسجَّل تدريب بعد"} />
         <Stat icon={CalendarCheck} label="الأسبوع الحالي" value={plan && weekNo ? `${weekNo} / ${plan.durationWeeks}` : "—"} hint={plan ? plan.content.weeks[weekNo! - 1].theme : "أنشئ خطتك أولاً"} />
         <Stat icon={ClipboardList} label="إنجاز الخطة" value={progress ? `${progress.percent}%` : "—"} hint={progress ? `${progress.done} من ${progress.total} مهمة` : undefined} />
-        <Stat icon={FileText} label="التقارير المعتمدة" value={String(approved)} hint={`${reports.data?.length ?? 0} تقارير مرفوعة`} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
