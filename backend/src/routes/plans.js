@@ -9,7 +9,7 @@ import { matchMajor } from '../lib/plans/catalog.js';
 import { buildProfile, generateEnginePlan } from '../lib/plans/engine.js';
 import { MAJOR_GROUPS, SECTORS, suggestFields } from '../lib/plans/fields.js';
 import { aiAvailable, generateAiPlan } from '../lib/plans/ai.js';
-import { derivePhases, planEditSchema } from '../lib/plans/schema.js';
+import { derivePhases, planEditSchema, reflectionSchema } from '../lib/plans/schema.js';
 
 const router = Router();
 router.use(authenticate, requireRole('STUDENT'));
@@ -221,7 +221,8 @@ router.put('/:id', validate(planEditSchema), async (req, res) => {
   const taskIds = edited.flatMap((w) => w.tasks.map((t) => t.id));
   if (new Set(taskIds).size !== taskIds.length) throw new HttpError(400, 'Duplicate task ids');
 
-  const weeks = edited.map(({ milestone, ...w }, i) => ({ ...w, weekNo: i + 1 }));
+  // An empty reflection is dropped rather than stored as "".
+  const weeks = edited.map(({ milestone, learned, ...w }, i) => ({ ...w, ...(learned && { learned }), weekNo: i + 1 }));
   const content = {
     ...plan.content,
     ...overview,
@@ -233,6 +234,18 @@ router.put('/:id', validate(planEditSchema), async (req, res) => {
     where: { id: plan.id },
     data: { content, durationWeeks: weeks.length },
   });
+  res.json(updated);
+});
+
+// Records what the student learned in one week, without resending the whole plan.
+router.put('/:id/weeks/:weekNo/reflection', validate(reflectionSchema), async (req, res) => {
+  const plan = await loadOwnPlan(req.user.id, Number(req.params.id));
+  const weekNo = Number(req.params.weekNo);
+  const content = plan.content;
+  const week = Number.isSafeInteger(weekNo) ? content.weeks[weekNo - 1] : undefined;
+  if (!week || weekNo < 1) throw notFound('Week');
+  week.learned = req.body.learned;
+  const updated = await prisma.trainingPlan.update({ where: { id: plan.id }, data: { content } });
   res.json(updated);
 });
 

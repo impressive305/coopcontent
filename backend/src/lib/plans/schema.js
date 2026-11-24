@@ -48,6 +48,7 @@ export const checkPlanConsistency = (plan, durationWeeks) => {
 };
 
 const text = (max) => z.string().trim().max(max);
+export const REFLECTION_MAX = 2000;
 const list = (maxItems, maxLength = 300) => z.array(text(maxLength).min(1)).max(maxItems);
 
 // What the student may change when editing a plan. Weeks are numbered by
@@ -69,8 +70,12 @@ export const planEditSchema = z.object({
     deliverable: text(500),
     skills: list(10, 100),
     milestone: text(200).optional(),
+    learned: text(REFLECTION_MAX).optional(),
   })).min(1).max(52),
 });
+
+// What the student says they learned once a week is over.
+export const reflectionSchema = z.strictObject({ learned: text(REFLECTION_MAX).min(10) });
 
 // Groups consecutive weeks that share a phase name into phase ranges.
 export const derivePhases = (weeks) => {

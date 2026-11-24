@@ -181,6 +181,8 @@ export type PlanWeek = {
   tasks: PlanTask[];
   deliverable: string;
   skills: string[];
+  // What the student says they learned, written once the week is over.
+  learned?: string;
 };
 export type PlanContent = {
   title: string;
@@ -238,6 +240,19 @@ export const currentWeekNo = (plan: TrainingPlan) => {
   if (open) return open.weekNo;
   return weeks.some((w) => w.tasks.length) ? weeks.length : 1;
 };
+
+// A week is over once all its tasks are done, or (with a start date) once the calendar has moved past it.
+export const weekIsOver = (week: Pick<PlanWeek, "weekNo" | "tasks">, startDate: string | null, current: number) =>
+  (week.tasks.length > 0 && week.tasks.every((t) => t.done)) || (!!startDate && week.weekNo < current);
+
+// Finished weeks the student has not yet written up, most recent first.
+export const weeksAwaitingReflection = (plan: TrainingPlan) => {
+  const current = currentWeekNo(plan);
+  return plan.content.weeks.filter((w) => !w.learned?.trim() && weekIsOver(w, plan.startDate, current)).reverse();
+};
+
+export const REFLECTION_MIN = 10;
+export const REFLECTION_MAX = 2000;
 
 export const TASK_KINDS: Record<TaskKind, string> = { field: "تدريب ميداني", learning: "تعلّم ذاتي" };
 

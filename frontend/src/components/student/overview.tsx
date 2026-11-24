@@ -1,15 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { ArrowLeft, Briefcase, CalendarCheck, Check, ClipboardList, FileText, Flag, Lightbulb } from "lucide-react";
 import {
-  api, currentWeekNo, placementTitle, planProgress,
+  REFLECTION_MAX, REFLECTION_MIN, api, currentWeekNo, placementTitle, planProgress, weeksAwaitingReflection,
   type Application, type Placement, type Report, type TrainingPlan,
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useData } from "@/lib/use-data";
 import { TaskItem } from "./plan-shared";
-import { Alert, Card, StatusBadge, cx, formatDate, useAction } from "../ui";
+import { Alert, Button, Card, StatusBadge, cx, formatDate, inputClass, useAction } from "../ui";
 
 function Stat({ icon: Icon, label, value, hint }: { icon: typeof Briefcase; label: string; value: string; hint?: string }) {
   return (
@@ -53,6 +54,41 @@ function NextSteps({ steps }: { steps: Step[] }) {
           </li>
         ))}
       </ol>
+    </Card>
+  );
+}
+
+// Asks for what the student learned in the most recent finished week they have not written up.
+function WeeklyReflection({ plan, onChange }: { plan: TrainingPlan; onChange: () => void }) {
+  const pending = weeksAwaitingReflection(plan);
+  const week = pending[0];
+  const [learned, setLearned] = useState("");
+  const action = useAction();
+  if (!week) return null;
+  const save = () =>
+    action.run(() => api(`/plans/${plan.id}/weeks/${week.weekNo}/reflection`, { method: "PUT", body: { learned: learned.trim() } }))
+      .then((ok) => { if (ok) { setLearned(""); onChange(); } });
+
+  return (
+    <Card
+      className="border-amber-200 bg-amber-50/60 dark:border-amber-500/20 dark:bg-amber-500/10"
+      title={<span className="flex items-center gap-2"><Lightbulb className="size-5 text-amber-600" />ماذا استفدت في الأسبوع {week.weekNo}؟</span>}
+      description={`${week.theme}${pending.length > 1 ? ` · ولديك ${pending.length - 1} أسابيع أخرى منتهية بانتظار ما استفدته` : ""}`}
+    >
+      <textarea
+        value={learned}
+        onChange={(e) => setLearned(e.target.value)}
+        rows={3}
+        maxLength={REFLECTION_MAX}
+        aria-label={`ماذا استفدت في الأسبوع ${week.weekNo}`}
+        placeholder="ما تعلمته أو أتقنته هذا الأسبوع، وموقف واحد استفدت منه."
+        className={inputClass}
+      />
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <Button disabled={action.busy || learned.trim().length < REFLECTION_MIN} onClick={save}>حفظ</Button>
+        {pending.length > 1 && <Link href="/dashboard/plan" className="text-sm text-brand hover:underline">بقية الأسابيع في صفحة الخطة</Link>}
+      </div>
+      <div className="mt-3"><Alert>{action.error}</Alert></div>
     </Card>
   );
 }
@@ -143,6 +179,7 @@ export function StudentOverview() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
         <div className="space-y-6">
+          {plan && <WeeklyReflection key={plan.id} plan={plan} onChange={planData.reload} />}
           {plan && <ThisWeek plan={plan} onChange={planData.reload} />}
           <NextSteps steps={steps} />
         </div>

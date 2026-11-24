@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ArrowDown, ArrowUp, Check, CircleAlert, Copy, Flag, History, Loader2, Plus, RefreshCw, Target, Trash2, X,
+  ArrowDown, ArrowUp, Check, CircleAlert, Copy, Flag, History, Lightbulb, Loader2, Plus, RefreshCw, Target, Trash2, X,
 } from "lucide-react";
 import {
-  TASK_KINDS, api, currentWeekNo, tasksByKind,
+  REFLECTION_MAX, TASK_KINDS, api, currentWeekNo, tasksByKind, weekIsOver,
   type PlanSummary, type PlanTask, type PlanWeek, type TaskKind, type TrainingPlan,
 } from "@/lib/api";
 import { useData } from "@/lib/use-data";
@@ -43,6 +43,7 @@ const toBody = (d: Draft) => ({
     deliverable: w.deliverable.trim(),
     skills: w.skills.map((s) => s.trim()).filter(Boolean),
     milestone: w.milestone.trim() || undefined,
+    learned: w.learned?.trim() || undefined,
   })),
 });
 
@@ -134,9 +135,9 @@ function AddTask({ onAdd }: { onAdd: (title: string, kind: TaskKind) => void }) 
 }
 
 function WeekPanel({
-  week, index, count, current, onChange, onMove, onDuplicate, onRemove,
+  week, index, count, current, over, onChange, onMove, onDuplicate, onRemove,
 }: {
-  week: DraftWeek; index: number; count: number; current: boolean;
+  week: DraftWeek; index: number; count: number; current: boolean; over: boolean;
   onChange: (w: DraftWeek) => void; onMove: (delta: number) => void; onDuplicate: () => void; onRemove: () => void;
 }) {
   const set = <K extends keyof DraftWeek>(key: K, value: DraftWeek[K]) => onChange({ ...week, [key]: value });
@@ -173,6 +174,22 @@ function WeekPanel({
           ))}
         </ul>
         {week.tasks.length < 20 && <AddTask onAdd={(title, kind) => set("tasks", [...week.tasks, { id: newId("t"), title, done: false, kind }])} />}
+      </section>
+
+      <section className={cx("mt-8 rounded-2xl p-4", over && !week.learned?.trim() ? "bg-amber-50 ring-1 ring-amber-200 dark:bg-amber-500/10 dark:ring-amber-500/20" : "bg-muted/60")}>
+        <h3 className="flex items-center gap-1.5 text-sm font-semibold"><Lightbulb className="size-4 text-amber-600" />ماذا استفدت هذا الأسبوع؟</h3>
+        <p className="mt-0.5 mb-2 text-xs text-subtle">
+          {over ? "انتهى هذا الأسبوع. اكتب بإيجاز ما تعلمته أو أتقنته، وموقفاً واحداً استفدت منه." : "اكتبها عند نهاية الأسبوع: ما تعلمته، وما أتقنته، وموقف استفدت منه."}
+        </p>
+        <textarea
+          value={week.learned ?? ""}
+          onChange={(e) => set("learned", e.target.value)}
+          rows={3}
+          maxLength={REFLECTION_MAX}
+          placeholder="مثال: تعلمت إدارة تذاكر الدعم في ServiceNow، وفهمت كيف يُصعَّد البلاغ للفريق المختص."
+          aria-label="ماذا استفدت هذا الأسبوع"
+          className={inputClass}
+        />
       </section>
 
       <div className="mt-8 grid gap-6 border-t border-line pt-6 md:grid-cols-2">
@@ -218,7 +235,7 @@ function WeekPanel({
   );
 }
 
-function WeekNavigator({ weeks, selected, current, onSelect, onAdd }: { weeks: DraftWeek[]; selected: number; current: number; onSelect: (i: number) => void; onAdd: () => void }) {
+function WeekNavigator({ weeks, selected, current, startDate, onSelect, onAdd }: { weeks: DraftWeek[]; selected: number; current: number; startDate: string | null; onSelect: (i: number) => void; onAdd: () => void }) {
   return (
     <nav aria-label="أسابيع الخطة" className="min-w-0 lg:sticky lg:top-24">
       <ol className="flex gap-2 overflow-x-auto pb-2 lg:max-h-[calc(100vh-12rem)] lg:flex-col lg:gap-1 lg:overflow-x-visible lg:overflow-y-auto lg:pb-0">
@@ -252,6 +269,9 @@ function WeekNavigator({ weeks, selected, current, onSelect, onAdd }: { weeks: D
                   </span>
                 </span>
                 {w.milestone.trim() && <Flag className="size-3.5 shrink-0 text-amber-600" />}
+                {!w.learned?.trim() && weekIsOver({ weekNo: i + 1, tasks }, startDate, current) && (
+                  <span title="لم تكتب ما استفدته من هذا الأسبوع" className="size-2 shrink-0 rounded-full bg-amber-500"><span className="sr-only">بانتظار ما استفدته</span></span>
+                )}
               </button>
             </li>
           );
@@ -427,6 +447,7 @@ export function PlanWorkspace({ plan, onReplace, onNew }: { plan: TrainingPlan; 
             weeks={draft.weeks}
             selected={weekIndex}
             current={current}
+            startDate={plan.startDate}
             onSelect={setSelected}
             onAdd={() => insertAt(draft.weeks.length, { key: newId("w"), phase: draft.weeks.at(-1)?.phase ?? "", theme: "", objectives: [], tasks: [], deliverable: "", skills: [], milestone: "" })}
           />
@@ -436,11 +457,12 @@ export function PlanWorkspace({ plan, onReplace, onNew }: { plan: TrainingPlan; 
             index={weekIndex}
             count={draft.weeks.length}
             current={weekIndex + 1 === current}
+            over={weekIsOver({ ...draft.weeks[weekIndex], weekNo: weekIndex + 1, tasks: draft.weeks[weekIndex].tasks.filter((t) => t.title.trim()) }, plan.startDate, current)}
             onChange={(w) => setWeeks(draft.weeks.map((x, j) => (j === weekIndex ? w : x)))}
             onMove={(delta) => move(weekIndex, delta)}
             onDuplicate={() => {
               const w = draft.weeks[weekIndex];
-              insertAt(weekIndex + 1, { ...w, key: newId("w"), milestone: "", tasks: w.tasks.map((t) => ({ ...t, id: newId("t"), done: false })) });
+              insertAt(weekIndex + 1, { ...w, key: newId("w"), milestone: "", learned: undefined, tasks: w.tasks.map((t) => ({ ...t, id: newId("t"), done: false })) });
             }}
             onRemove={() => remove(weekIndex)}
           />

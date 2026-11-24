@@ -1,4 +1,4 @@
-import { api, auth, prisma, resetDb, sessionOf } from './setup.js';
+import { api, auth, createStaff, prisma, resetDb, sessionOf } from './setup.js';
 import { COMMON_TASKS, MAJORS } from '../src/lib/plans/catalog.js';
 import { buildProfile, generateEnginePlan, tasksPerWeek } from '../src/lib/plans/engine.js';
 import { checkPlanConsistency, planContentSchema } from '../src/lib/plans/schema.js';
@@ -182,6 +182,40 @@ describe('plans API', () => {
     const dupes = [{ ...weeks[0] }, { ...weeks[0], theme: 'x' }];
     expect((await api().put(`/api/plans/${generated.id}`).set(auth(token)).send({ title: 'x', summary: '', goals: [], weeks: dupes })).status).toBe(400);
     expect((await api().put(`/api/plans/${generated.id}`).set(auth(token)).send({ title: 'x', summary: '', goals: [], weeks: [] })).status).toBe(400);
+  });
+
+  test('records what the student learned each week, and keeps it through edits', async () => {
+    const plan = (await api().post('/api/plans').set(auth(token)).send(planRequest)).body;
+    const learned = 'تعلمت كتابة استعلامات SQL وتحسين أدائها مع فريق البيانات.';
+    const url = (weekNo) => `/api/plans/${plan.id}/weeks/${weekNo}/reflection`;
+
+    const saved = await api().put(url(1)).set(auth(token)).send({ learned });
+    expect(saved.status).toBe(200);
+    expect(saved.body.content.weeks[0].learned).toBe(learned);
+    expect(saved.body.content.weeks[1].learned).toBeUndefined();
+
+    // Validation: real text, bounded, nothing extra, a week that exists.
+    expect((await api().put(url(1)).set(auth(token)).send({ learned: 'قصير' })).status).toBe(400);
+    expect((await api().put(url(1)).set(auth(token)).send({ learned: 'x'.repeat(2001) })).status).toBe(400);
+    expect((await api().put(url(1)).set(auth(token)).send({ learned, done: true })).status).toBe(400);
+    for (const bad of [0, -1, 13, 1.5, 'abc']) {
+      expect((await api().put(url(bad)).set(auth(token)).send({ learned })).status).toBe(404);
+    }
+
+    // Another student cannot read or write it.
+    const other = sessionOf(await api().post('/api/auth/register/student').send({ ...student, email: 'c@example.com', universityId: '441000777' }));
+    expect((await api().put(url(2)).set(auth(other)).send({ learned })).status).toBe(404);
+    const admin = await createStaff('ADMIN', 'admin@example.com');
+    expect((await api().put(url(2)).set(auth(admin)).send({ learned })).status).toBe(403);
+
+    // A task toggle and a full autosave keep it; an empty one in the editor is dropped, not stored.
+    const taskId = plan.content.weeks[0].tasks[0].id;
+    const toggled = await api().patch(`/api/plans/${plan.id}/tasks/${taskId}`).set(auth(token)).send({ done: true });
+    expect(toggled.body.content.weeks[0].learned).toBe(learned);
+    const weeks = toggled.body.content.weeks.map(({ weekNo, ...w }, i) => ({ ...w, learned: i === 0 ? `${learned} (معدّل)` : '' }));
+    const edited = await api().put(`/api/plans/${plan.id}`).set(auth(token)).send({ title: 'خطة', summary: '', goals: [], weeks });
+    expect(edited.body.content.weeks[0].learned).toBe(`${learned} (معدّل)`);
+    expect('learned' in edited.body.content.weeks[1]).toBe(false);
   });
 
   test('updates the student profile', async () => {
