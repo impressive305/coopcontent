@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Check, Circle, Mail, MessageSquareText, Phone } from "lucide-react";
 import { api, type CompanyReview } from "@/lib/api";
 import { useData } from "@/lib/use-data";
-import { LogoUploader } from "../company-logo";
+import { AccreditedBadge, LogoUploader } from "../company-logo";
 import { CompanyProfileForm } from "../company-profile-form";
 import { Alert, Button, Drawer, Field, StatusBadge, cx, formatDate, inputClass, useAction } from "../ui";
 import { REVIEW_BADGES, type AdminCompanyDetails } from "./types";
@@ -23,6 +23,22 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <h3 className="text-sm font-semibold text-subtle">{title}</h3>
       {children}
     </section>
+  );
+}
+
+// Grants or removes the accreditation badge (independent of whether the company is listed).
+export function AccreditationButton({ company, onChanged }: { company: { id: number; name: string; accredited: boolean }; onChanged: () => void }) {
+  const action = useAction();
+  const toggle = () => {
+    const next = !company.accredited;
+    if (!window.confirm(next ? `منح «${company.name}» علامة الاعتماد؟ ستظهر العلامة للطلاب بجانب اسمها.` : `سحب علامة الاعتماد من «${company.name}»؟`)) return;
+    action.run(() => api(`/admin/companies/${company.id}/accreditation`, { method: "PATCH", body: { accredited: next } })).then((ok) => ok && onChanged());
+  };
+  return (
+    <>
+      <Button variant="secondary" disabled={action.busy} onClick={toggle}>{company.accredited ? "سحب علامة الاعتماد" : "منح علامة الاعتماد"}</Button>
+      {action.error && <Alert>{action.error}</Alert>}
+    </>
   );
 }
 
@@ -90,7 +106,15 @@ export function CompanyRequest({ id, onChanged, onClose }: { id: number; onChang
             </dl>
           </Section>
 
-          <Section title="ما يُستكمل قبل الاعتماد">
+          <Section title="علامة الاعتماد">
+            <div className="flex flex-wrap items-center gap-3">
+              {c.accredited ? <AccreditedBadge /> : <span className="text-sm text-subtle">بلا علامة اعتماد</span>}
+              <AccreditationButton company={c} onChanged={changed} />
+            </div>
+            <p className="text-xs text-subtle">تظهر العلامة للطلاب بجانب اسم الجهة بعد قبول طلبها. الجهات التي تسجّل بنفسها تحملها تلقائياً.</p>
+          </Section>
+
+          <Section title="ما يُستكمل قبل القبول">
             <ul className="space-y-1.5 text-sm">
               {REQUIRED.map((r) => (
                 <li key={r.label} className={cx("flex items-center gap-2", r.done(c) ? "text-emerald-700 dark:text-emerald-400" : "text-subtle")}>
@@ -131,11 +155,11 @@ export function CompanyRequest({ id, onChanged, onClose }: { id: number; onChang
             <div className="flex flex-wrap gap-2">
               {c.reviewStatus === "PENDING" && <Button variant="secondary" disabled={action.busy} onClick={() => setStatus("CONTACTED")}>تم التواصل</Button>}
               {c.reviewStatus !== "APPROVED" && (
-                <Button disabled={action.busy} onClick={() => setStatus("APPROVED", `اعتماد «${c.name}»؟ ستظهر للطلاب ويمكنها نشر الفرص.`)}>اعتماد الجهة</Button>
+                <Button disabled={action.busy} onClick={() => setStatus("APPROVED", `قبول طلب «${c.name}»؟ ستظهر للطلاب ويمكنها نشر الفرص.`)}>قبول الطلب</Button>
               )}
               {c.reviewStatus !== "REJECTED" && (
-                <Button variant="danger" disabled={action.busy} onClick={() => setStatus("REJECTED", `${c.reviewStatus === "APPROVED" ? "إلغاء اعتماد" : "رفض طلب"} «${c.name}»؟ لن تظهر للطلاب ولن تنشر فرصاً.`)}>
-                  {c.reviewStatus === "APPROVED" ? "إلغاء الاعتماد" : "رفض الطلب"}
+                <Button variant="danger" disabled={action.busy} onClick={() => setStatus("REJECTED", `${c.reviewStatus === "APPROVED" ? "إلغاء قبول" : "رفض طلب"} «${c.name}»؟ لن تظهر للطلاب ولن تنشر فرصاً.`)}>
+                  {c.reviewStatus === "APPROVED" ? "إلغاء القبول" : "رفض الطلب"}
                 </Button>
               )}
               {c.reviewStatus === "REJECTED" && <Button variant="secondary" disabled={action.busy} onClick={() => setStatus("PENDING")}>إعادة فتح الطلب</Button>}

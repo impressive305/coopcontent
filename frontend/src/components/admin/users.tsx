@@ -183,7 +183,7 @@ function UserDetails({ id, onChanged, onClose }: { id: number; onChanged: () => 
             <>
               <Section title="الجهة">
                 <p className="text-sm">{u.company.name} · {u.company.city} · {u.company.sector} {!u.company.verified && <StatusBadge status="UNVERIFIED" />}</p>
-                <p className="text-xs text-gray-500">تُعدَّل بيانات الجهة واعتمادها من صفحة «جهات التدريب».</p>
+                <p className="text-xs text-gray-500">تُعدَّل بيانات الجهة وقبولها وعلامة اعتمادها من صفحة «جهات التدريب».</p>
               </Section>
               <Section title={`الفرص المنشورة (${u.company.opportunities.length})`}>
                 <ul className="divide-y divide-black/5 text-sm dark:divide-white/10">

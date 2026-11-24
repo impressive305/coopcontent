@@ -50,7 +50,7 @@ const navByRole: Record<Role, NavGroup[]> = {
       title: "الإدارة",
       items: [
         { href: "/dashboard/manage/users", label: "المستخدمون", description: "كل الحسابات المسجلة وصلاحياتها", icon: Users },
-        { href: "/dashboard/manage/companies", label: "جهات التدريب", description: "الدليل الذي يراه الطلاب، والاعتماد والشعارات", icon: Building2 },
+        { href: "/dashboard/manage/companies", label: "جهات التدريب", description: "الدليل الذي يراه الطلاب، وطلبات التسجيل وعلامة الاعتماد والشعارات", icon: Building2 },
         { href: "/dashboard/manage/opportunities", label: "الفرص والطلبات", description: "الفرص المنشورة على المنصة وطلبات الطلاب", icon: Briefcase },
         { href: "/dashboard/manage/placements", label: "حالات التدريب", description: "المتدربون الحاليون وتقاريرهم", icon: GraduationCap },
         { href: "/dashboard/manage/tickets", label: "تذاكر الدعم", description: "مشكلات واستفسارات المستخدمين والرد عليها", icon: LifeBuoy },

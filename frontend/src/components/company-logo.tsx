@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ImagePlus, Trash2 } from "lucide-react";
+import { BadgeCheck, ImagePlus, Trash2 } from "lucide-react";
 import { api, logoUrl } from "@/lib/api";
 import { Alert, Button, cx, useAction } from "./ui";
 
@@ -19,6 +19,16 @@ export function CompanyLogo({ id, name, version, className }: { id: number; name
   return (
     <span aria-hidden className={cx(base, "grid place-items-center text-lg font-bold text-white", FALLBACK_COLORS[id % FALLBACK_COLORS.length])}>
       {name.trim().replace(/^(ال|شركة\s+)/, "").charAt(0)}
+    </span>
+  );
+}
+
+// The accreditation mark shown next to a company's name.
+export function AccreditedBadge({ compact }: { compact?: boolean }) {
+  return (
+    <span title="جهة معتمدة من وحدة التدريب" className="inline-flex shrink-0 items-center gap-1 rounded-full bg-brand-soft px-2 py-0.5 text-xs font-semibold text-brand">
+      <BadgeCheck className="size-3.5" aria-hidden />
+      {compact ? <span className="sr-only">جهة معتمدة</span> : "جهة معتمدة"}
     </span>
   );
 }

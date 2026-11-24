@@ -195,10 +195,22 @@ router.get('/companies', validate(z.object({
   res.json(companies.map(({ logo, ...c }) => ({ ...c, logoVersion: logoVersion(logo) })));
 });
 
-// Directory-only company: no account, approved by the admin who adds it.
+// Directory-only company: no account, approved by the admin who adds it. It is
+// listed without the accreditation badge until the admin grants it.
 router.post('/companies', validate(companyProfileSchema), async (req, res) => {
-  const company = await prisma.company.create({ data: { ...req.body, verified: true, reviewStatus: 'APPROVED', reviewedAt: new Date() } });
+  const company = await prisma.company.create({ data: { ...req.body, accredited: false, verified: true, reviewStatus: 'APPROVED', reviewedAt: new Date() } });
   res.status(201).json(company);
+});
+
+// Grants or removes the badge, and records who did it in the company's internal log.
+router.patch('/companies/:id/accreditation', validate(z.strictObject({ accredited: z.boolean() })), async (req, res) => {
+  const { accredited } = req.body;
+  const company = await prisma.$transaction(async (tx) => {
+    const updated = await tx.company.update({ where: { id: id(req) }, data: { accredited } });
+    await tx.companyNote.create({ data: { companyId: updated.id, authorId: req.user.id, body: accredited ? 'منح علامة الاعتماد' : 'سحب علامة الاعتماد' } });
+    return updated;
+  });
+  res.json(company);
 });
 
 // A request with its contact, details and the training unit's notes.

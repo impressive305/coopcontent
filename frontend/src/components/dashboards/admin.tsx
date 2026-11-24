@@ -25,7 +25,7 @@ function StatTiles({ stats }: { stats: Stats }) {
   const tiles: [string, number, string][] = [
     ["الطلاب", stats.students, "/dashboard/manage/users"],
     ["تسجيلات آخر 7 أيام", stats.newUsers, "/dashboard/manage/users"],
-    ["جهات معتمدة", stats.companies, "/dashboard/manage/companies"],
+    ["جهات مقبولة", stats.companies, "/dashboard/manage/companies"],
     ["طلبات تسجيل جهات", stats.pendingCompanies, "/dashboard/manage/companies"],
     ["فرص مفتوحة", stats.openOpportunities, "/dashboard/manage/opportunities"],
     ["طلبات قيد المراجعة", stats.applications.PENDING ?? 0, "/dashboard/manage/opportunities"],
@@ -80,7 +80,7 @@ export function AdminDashboard() {
           </ul>
         </Card>
 
-        <Card title="طلبات تسجيل الجهات" description="تُعتمد الجهة بعد مراجعة طلبها والتواصل مع مسؤول التدريب." actions={<More href="/dashboard/manage/companies" />}>
+        <Card title="طلبات تسجيل الجهات" description="يُقبل طلب الجهة بعد مراجعته والتواصل مع مسؤول التدريب." actions={<More href="/dashboard/manage/companies" />}>
           {pending.data?.length === 0 && <Empty>لا توجد طلبات بانتظار المراجعة.</Empty>}
           <ul className="divide-y divide-line text-sm">
             {pending.data?.map((c) => (

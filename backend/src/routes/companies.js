@@ -13,7 +13,8 @@ router.use(authenticate);
 const optional = (schema) => schema.nullable().optional();
 
 // The directory profile students see; edited by the company or the admin.
-export const companyProfileSchema = z.object({
+// Strict: review status, `verified` and the `accredited` badge are never set through it.
+export const companyProfileSchema = z.strictObject({
   name: z.string().trim().min(2).max(200),
   city: z.string().trim().min(2).max(100),
   sector: z.string().trim().min(2).max(100),

@@ -78,7 +78,8 @@ router.post('/register/company', validate(companySchema), async (req, res) => {
       email,
       passwordHash: await bcrypt.hash(password, BCRYPT_ROUNDS),
       role: 'COMPANY',
-      company: { create: { name: companyName, ...company } },
+      // Set by the server only: a company that registers itself carries the badge.
+      company: { create: { name: companyName, ...company, accredited: true } },
     },
   });
   startSession(res, user, 201);

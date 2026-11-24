@@ -269,6 +269,46 @@ describe('company directory', () => {
   });
 });
 
+describe('accreditation badge', () => {
+  test('self-registered companies carry it, admin-added ones do not until granted, and only the admin changes it', async () => {
+    const admin = await createStaff('ADMIN', 'admin@example.com');
+    const s = sessionOf(await api().post('/api/auth/register/student').send(student));
+    const c = sessionOf(await api().post('/api/auth/register/company').send(company));
+    const registered = await prisma.company.findFirst();
+    await api().patch(`/api/admin/companies/${registered.id}/review`).set(auth(admin)).send({ status: 'APPROVED' });
+    const added = (await api().post('/api/admin/companies').set(auth(admin)).send({ name: 'Directory Co', city: 'Jeddah', sector: 'Energy' })).body;
+    expect(added.accredited).toBe(false);
+
+    const badges = async () => Object.fromEntries((await api().get('/api/companies').set(auth(s))).body.map((x) => [x.name, x.accredited]));
+    expect(await badges()).toEqual({ 'Directory Co': false, 'Riyadh Tech': true });
+
+    // The client can never set it: not at sign-up, not on the company's own profile, not on admin create or edit.
+    expect((await api().post('/api/auth/register/company').send({ ...company, email: 'x@example.com', accredited: false })).status).toBe(400);
+    expect((await api().patch('/api/companies/me').set(auth(c)).send({ accredited: false })).status).toBe(400);
+    expect((await api().patch('/api/companies/me').set(auth(c)).send({ verified: true })).status).toBe(400);
+    expect((await api().post('/api/admin/companies').set(auth(admin)).send({ name: 'Sneaky', city: 'Riyadh', sector: 'IT', accredited: true })).status).toBe(400);
+    expect((await api().patch(`/api/admin/companies/${added.id}`).set(auth(admin)).send({ accredited: true })).status).toBe(400);
+
+    // Only the admin toggles it, through its own endpoint; each change is logged.
+    expect((await api().patch(`/api/admin/companies/${added.id}/accreditation`).set(auth(c)).send({ accredited: true })).status).toBe(403);
+    expect((await api().patch(`/api/admin/companies/${added.id}/accreditation`).set(auth(s)).send({ accredited: true })).status).toBe(403);
+    expect((await api().patch(`/api/admin/companies/${added.id}/accreditation`).set(auth(admin)).send({ accredited: 'yes' })).status).toBe(400);
+    expect((await api().patch(`/api/admin/companies/${added.id}/accreditation`).set(auth(admin)).send({ accredited: true, verified: false })).status).toBe(400);
+    expect((await api().patch('/api/admin/companies/999999/accreditation').set(auth(admin)).send({ accredited: true })).status).toBe(404);
+    const granted = await api().patch(`/api/admin/companies/${added.id}/accreditation`).set(auth(admin)).send({ accredited: true });
+    expect(granted.body).toMatchObject({ accredited: true, verified: true });
+    await api().patch(`/api/admin/companies/${registered.id}/accreditation`).set(auth(admin)).send({ accredited: false });
+    expect(await badges()).toEqual({ 'Directory Co': true, 'Riyadh Tech': false });
+    const log = (await api().get(`/api/admin/companies/${registered.id}`).set(auth(admin))).body.notes.map((n) => n.body);
+    expect(log).toContain('سحب علامة الاعتماد');
+
+    // The badge does not list a company: an unapproved request stays hidden even if it carries it.
+    await api().patch(`/api/admin/companies/${registered.id}/accreditation`).set(auth(admin)).send({ accredited: true });
+    await api().patch(`/api/admin/companies/${registered.id}/review`).set(auth(admin)).send({ status: 'REJECTED' });
+    expect(Object.keys(await badges())).toEqual(['Directory Co']);
+  });
+});
+
 describe('admin control panel', () => {
   test('lists, edits, suspends and deletes accounts', async () => {
     const admin = await createStaff('ADMIN', 'admin@example.com');

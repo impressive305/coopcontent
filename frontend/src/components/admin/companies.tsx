@@ -4,10 +4,10 @@ import { useState } from "react";
 import { ExternalLink, Inbox, Plus, Search } from "lucide-react";
 import { api } from "@/lib/api";
 import { useData } from "@/lib/use-data";
-import { CompanyLogo, LogoUploader } from "../company-logo";
+import { AccreditedBadge, CompanyLogo, LogoUploader } from "../company-logo";
 import { CompanyProfileForm } from "../company-profile-form";
 import { Alert, Button, Card, Empty, StatusBadge, cx, formatDate, useAction } from "../ui";
-import { CompanyRequest } from "./company-request";
+import { AccreditationButton, CompanyRequest } from "./company-request";
 import { REVIEW_BADGES, confirmDelete, type AdminCompany } from "./types";
 
 const isOpenRequest = (c: AdminCompany) => c.reviewStatus === "PENDING" || c.reviewStatus === "CONTACTED";
@@ -56,6 +56,7 @@ function CompanyRow({ company: c, onChanged, onReview }: { company: AdminCompany
         <div className="min-w-0">
           <p className="flex flex-wrap items-center gap-2 font-medium">
             {c.name}
+            {c.accredited && <AccreditedBadge compact />}
             {c.reviewStatus !== "APPROVED" && <StatusBadge status={REVIEW_BADGES[c.reviewStatus]} />}
             {c.verified && !c.coopOpen && <StatusBadge status="CLOSED" />}
           </p>
@@ -73,6 +74,7 @@ function CompanyRow({ company: c, onChanged, onReview }: { company: AdminCompany
         </div>
         <div className="flex flex-wrap gap-2">
           {c.user && <Button variant={c.verified ? "secondary" : "primary"} onClick={onReview}>{c.verified ? "الطلب والسجل" : "مراجعة الطلب"}</Button>}
+          {c.verified && <AccreditationButton company={c} onChanged={onChanged} />}
           {c.verified && (
             <Button variant="secondary" disabled={action.busy} onClick={() => run(() => api(`/admin/companies/${c.id}`, { method: "PATCH", body: { coopOpen: !c.coopOpen } }))}>
               {c.coopOpen ? "إخفاء عن الطلاب" : "إظهار للطلاب"}
@@ -93,7 +95,7 @@ function CompanyRow({ company: c, onChanged, onReview }: { company: AdminCompany
   );
 }
 
-const FILTERS = [["all", "الكل"], ["requests", "طلبات مفتوحة"], ["open", "ظاهرة للطلاب"], ["hidden", "مخفية"], ["rejected", "مرفوضة"]] as const;
+const FILTERS = [["all", "الكل"], ["requests", "طلبات مفتوحة"], ["open", "ظاهرة للطلاب"], ["accredited", "معتمدة"], ["unaccredited", "بلا علامة اعتماد"], ["hidden", "مخفية"], ["rejected", "مرفوضة"]] as const;
 
 export function AdminCompanies() {
   const companies = useData<AdminCompany[]>("/admin/companies");
@@ -104,7 +106,7 @@ export function AdminCompanies() {
 
   const q = query.trim().toLowerCase();
   const shown = (companies.data ?? []).filter((c) =>
-    (filter === "all" || (filter === "requests" && isOpenRequest(c)) || (filter === "open" && c.verified && c.coopOpen) || (filter === "hidden" && c.verified && !c.coopOpen) || (filter === "rejected" && c.reviewStatus === "REJECTED")) &&
+    (filter === "all" || (filter === "requests" && isOpenRequest(c)) || (filter === "open" && c.verified && c.coopOpen) || (filter === "accredited" && c.accredited) || (filter === "unaccredited" && c.verified && !c.accredited) || (filter === "hidden" && c.verified && !c.coopOpen) || (filter === "rejected" && c.reviewStatus === "REJECTED")) &&
     (!q || [c.name, c.city, c.sector].some((t) => t.toLowerCase().includes(q))));
   const pending = companies.data?.filter(isOpenRequest).length ?? 0;
 
@@ -116,7 +118,8 @@ export function AdminCompanies() {
         actions={<Button onClick={() => setAdding(!adding)} className="flex items-center gap-2"><Plus className="size-4" />{adding ? "إغلاق" : "إضافة جهة"}</Button>}
       >
         <p className="mb-4 text-sm text-gray-500">
-          الجهات المعتمدة والظاهرة تُعرض للطلاب في صفحة الفرص، ويتواصلون معها مباشرة. أضف أي جهة تفتح التدريب التعاوني حتى لو لم تسجّل في المنصة، وحدّث بياناتها مع كل دورة.
+          الجهات المقبولة والظاهرة تُعرض للطلاب في صفحة الفرص، ويتواصلون معها مباشرة. أضف أي جهة تفتح التدريب التعاوني حتى لو لم تسجّل في المنصة، وحدّث بياناتها مع كل دورة.
+          الجهات التي تسجّل بنفسها تحمل علامة الاعتماد تلقائياً، والجهات التي تضيفها بلا علامة حتى تمنحها إياها.
         </p>
         {adding && (
           <div className="mb-5 rounded-xl border border-black/10 p-4 dark:border-white/10">

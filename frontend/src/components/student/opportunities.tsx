@@ -5,7 +5,7 @@ import { CalendarCheck, ExternalLink, Globe, Mail, MapPin, Phone, Search, Send }
 import { api, type Application, type DirectoryCompany, type Opportunity, type Placement } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useData } from "@/lib/use-data";
-import { CompanyLogo } from "../company-logo";
+import { AccreditedBadge, CompanyLogo } from "../company-logo";
 import { Alert, Button, Card, Drawer, Empty, Field, Select, StatusBadge, formatDate, inputClass, useAction } from "../ui";
 
 const mapsUrl = (c: DirectoryCompany) =>
@@ -62,7 +62,8 @@ function CompanyDetails({ id, canApply, onClose }: { id: number; canApply: boole
             <>
               <div className="flex items-center gap-4">
                 <CompanyLogo id={c.id} name={c.name} version={c.logoVersion} className="size-20" />
-                <div className="flex flex-wrap gap-2 text-sm">
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  {c.accredited && <AccreditedBadge />}
                   <span className="rounded-full bg-muted px-3 py-1">{c.sector}</span>
                   <span className="flex items-center gap-1 rounded-full bg-muted px-3 py-1"><MapPin className="size-3.5" />{c.city}</span>
                 </div>
@@ -129,7 +130,7 @@ function CompanyCard({ company: c, onOpen }: { company: DirectoryCompany; onOpen
       <div className="flex items-start gap-4">
         <CompanyLogo id={c.id} name={c.name} version={c.logoVersion} className="size-14" />
         <div className="min-w-0">
-          <h3 className="font-semibold leading-6">{c.name}</h3>
+          <h3 className="flex flex-wrap items-center gap-2 font-semibold leading-6">{c.name}{c.accredited && <AccreditedBadge compact />}</h3>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-3 text-sm text-subtle">
             <span className="flex items-center gap-1"><MapPin className="size-3.5" />{c.city}</span>
             <span>{c.sector}</span>
@@ -161,6 +162,7 @@ export function OpportunitiesBrowser() {
   const [query, setQuery] = useState("");
   const [city, setCity] = useState("");
   const [major, setMajor] = useState("");
+  const [accreditedOnly, setAccreditedOnly] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
 
   const all = companies.data ?? [];
@@ -170,7 +172,8 @@ export function OpportunitiesBrowser() {
   const shown = all.filter((c) =>
     (!q || [c.name, c.sector, c.description ?? ""].some((t) => t.toLowerCase().includes(q))) &&
     (!city || c.city === city) &&
-    (!major || c.majors.includes(major)));
+    (!major || c.majors.includes(major)) &&
+    (!accreditedOnly || c.accredited));
   const canApply = !placements.data?.some((p) => p.status === "ACTIVE");
 
   return (
@@ -198,6 +201,10 @@ export function OpportunitiesBrowser() {
             {majors.map((m) => <option key={m} value={m}>{m}</option>)}
           </Select>
         </div>
+        <label className="mt-4 inline-flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={accreditedOnly} onChange={(e) => setAccreditedOnly(e.target.checked)} className="size-4 accent-teal-700" />
+          الجهات المعتمدة فقط <AccreditedBadge compact />
+        </label>
       </Card>
       <Alert>{companies.error}</Alert>
       {companies.data && shown.length === 0 && <Card><Empty>لا توجد جهات مطابقة حالياً.</Empty></Card>}

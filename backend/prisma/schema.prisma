@@ -127,6 +127,10 @@ model Company {
   verified     Boolean       @default(false)
   reviewStatus CompanyReview @default(PENDING) @map("review_status")
   reviewedAt   DateTime?     @map("reviewed_at")
+  // The accreditation badge students see. Separate from `verified` (whether the
+  // company is listed at all): companies that register themselves get it; ones the
+  // admin adds do not, until the admin grants it.
+  accredited   Boolean       @default(false)
   createdAt    DateTime      @default(now()) @map("created_at")
   // Directory profile shown to students, who apply directly to the company.
   description  String?

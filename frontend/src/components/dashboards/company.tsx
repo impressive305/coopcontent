@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Check } from "lucide-react";
 import { DEGREES, api, placementTitle, type Application, type CompanyProfile, type CompanyReview, type Opportunity, type Placement, type User } from "@/lib/api";
-import { LogoUploader } from "../company-logo";
+import { AccreditedBadge, LogoUploader } from "../company-logo";
 import { CompanyProfileForm } from "../company-profile-form";
 import { useData } from "@/lib/use-data";
 import { Alert, Button, Card, Empty, Field, StatusBadge, cx, formValues, formatDate, useAction } from "../ui";
@@ -91,7 +91,7 @@ function RequestStatus({ name, status }: { name: string; status: CompanyReview }
   const steps = [
     { title: "استلام الطلب", text: "وصل طلبكم إلى وحدة التدريب.", done: true },
     { title: "التواصل واستكمال البيانات", text: "يتواصل معكم فريق وحدة التدريب على البريد المسجّل لاستكمال بيانات الجهة، مثل السجل التجاري.", done: status === "CONTACTED" },
-    { title: "اعتماد الجهة", text: "بعد الاعتماد تظهر الجهة للطلاب، ويمكنكم نشر الفرص واستقبال الطلبات.", done: false },
+    { title: "قبول الطلب", text: "بعد القبول تظهر الجهة للطلاب بعلامة «جهة معتمدة»، ويمكنكم نشر الفرص واستقبال الطلبات.", done: false },
   ];
   const current = steps.findIndex((s) => !s.done);
   return (
@@ -121,7 +121,8 @@ function ProfileCard() {
       {data && (
         <div className="space-y-6">
           <LogoUploader endpoint="/companies/me/logo" companyId={data.id} name={data.name} version={data.logoVersion} onChange={reload} />
-          {!data.verified && <p className="text-xs text-subtle">يظهر الشعار للطلاب بعد اعتماد الجهة.</p>}
+          {data.accredited && <p className="flex items-center gap-2 text-sm text-subtle"><AccreditedBadge />يرى الطلاب هذه العلامة بجانب اسم جهتكم.</p>}
+          {!data.verified && <p className="text-xs text-subtle">يظهر الشعار للطلاب بعد قبول طلب التسجيل.</p>}
           <CompanyProfileForm initial={data} submitLabel="حفظ الملف" onSubmit={(body) => api("/companies/me", { method: "PATCH", body }).then(reload)} />
         </div>
       )}

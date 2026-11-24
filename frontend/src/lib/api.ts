@@ -105,6 +105,8 @@ export type CompanyProfile = {
   city: string;
   sector: string;
   verified: boolean;
+  // The accreditation badge, granted by the training unit.
+  accredited: boolean;
   description: string | null;
   website: string | null;
   contactEmail: string | null;

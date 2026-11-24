@@ -3,7 +3,8 @@
 import { type CompanyProfile } from "@/lib/api";
 import { Alert, Button, Field, formValues, useAction } from "./ui";
 
-export type CompanyProfileInput = Omit<CompanyProfile, "id" | "verified">;
+// Only the profile itself: approval and the accreditation badge are not part of it.
+export type CompanyProfileInput = Omit<CompanyProfile, "id" | "verified" | "accredited" | "reviewStatus" | "logoVersion">;
 
 // The directory profile students see. Used by companies for themselves and by the admin.
 export function CompanyProfileForm({ initial, submitLabel, onSubmit }: { initial?: Partial<CompanyProfile>; submitLabel: string; onSubmit: (body: CompanyProfileInput) => Promise<unknown> }) {
