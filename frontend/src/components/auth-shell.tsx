@@ -38,7 +38,7 @@ export function AuthShell({ title, subtitle, children, footer, wide }: { title: 
         </div>
       </main>
 
-      <aside className="relative hidden overflow-hidden bg-gradient-to-b from-blue-800 via-blue-900 to-[#06302c] p-10 text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col lg:justify-between">
+      <aside className="relative hidden overflow-hidden bg-gradient-to-b from-blue-800 via-blue-900 to-[#06173d] p-10 text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col lg:justify-between">
         <div aria-hidden className="absolute -top-24 -left-24 size-96 rounded-full bg-blue-400/20 blur-3xl" />
         <div aria-hidden className="absolute -bottom-32 -right-16 size-96 rounded-full bg-indigo-300/15 blur-3xl" />
         <div className="relative">
