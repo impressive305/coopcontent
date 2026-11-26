@@ -27,7 +27,8 @@ await upsertUser('student@coopconnect.sa', {
 const companyUser = await upsertUser('company@coopconnect.sa', {
   name: 'خالد الدوسري',
   role: 'COMPANY',
-  company: { create: { name: 'جهة تجريبية (حساب عرض)', crNumber: '1010123456', city: 'الرياض', sector: 'تقنية المعلومات', verified: true, reviewStatus: 'APPROVED' } },
+  // Stands in for a self-registered company, so it carries the badge like one (the admin can remove it).
+  company: { create: { name: 'جهة تجريبية (حساب عرض)', crNumber: '1010123456', city: 'الرياض', sector: 'تقنية المعلومات', verified: true, reviewStatus: 'APPROVED', accredited: true } },
 });
 
 const company = await prisma.company.update({
