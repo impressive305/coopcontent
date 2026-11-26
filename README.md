@@ -65,7 +65,7 @@ docker compose exec api npm run db:seed   # بيانات تجريبية (اخت�
 
 ## التشغيل المحلي للتطوير
 
-المتطلبات: Node.js 22 وPostgreSQL 16.
+المتطلبات: Node.js 22 أو أحدث وPostgreSQL 16 أو أحدث.
 
 ```bash
 # 1) قاعدة البيانات
@@ -74,7 +74,7 @@ createdb coopconnect   # أو عبر psql، ثم عدّل DATABASE_URL في back
 # 2) الخادم
 cd backend
 cp .env.example .env
-npm install
+npm install            # يولّد Prisma Client تلقائياً (postinstall)
 npx prisma migrate dev
 npm run db:seed
 npm run dev            # http://localhost:4000
@@ -85,6 +85,23 @@ cp .env.example .env.local
 npm install
 npm run dev            # http://localhost:3000
 ```
+
+> مع npm 11 (المرفق مع Node 24) قد يظهر تحذير `install-scripts ... not yet covered by allowScripts`. هذا متوقع: المشروع لا يحتاج سكربتات تثبيت أي حزمة، لأن `postinstall` الخاص به يولّد Prisma Client بنفسه. لا تشغّل `npm install-scripts approve --all`.
+
+### بعد سحب تحديثات جديدة (`git pull`)
+
+ملفات `.env` وقاعدة البيانات لا تنتقل مع Git، فحدّثها على كل جهاز:
+
+```bash
+cd backend
+npm install              # حزم جديدة + إعادة توليد Prisma Client
+npx prisma migrate dev   # يطبّق تغييرات قاعدة البيانات الجديدة (مثل التذاكر والدرجة العلمية وعلامة الاعتماد)
+npm run db:seed          # يضيف الجهات ومنصات التدريب الجديدة فقط، ولا يكرر الموجود
+cd ../frontend
+npm install
+```
+
+ثم قارن `backend/.env` بـ `backend/.env.example` و`frontend/.env.local` بـ `frontend/.env.example` لإضافة أي متغير جديد.
 
 ### حسابات تجريبية (كلمة المرور لجميعها: `Password123`)
 
@@ -108,6 +125,14 @@ DATABASE_URL=postgresql://coop:coop@localhost:5432/coopconnect_test JWT_SECRET=t
 ```
 
 > تحذير: الاختبارات تفرّغ جداول قاعدة البيانات المستخدمة، فلا تشغّلها على قاعدة التطوير.
+
+فحص الواجهة:
+
+```bash
+cd frontend
+npm run typecheck   # يولّد أنواع المسارات أولاً، فيعمل حتى على نسخة جديدة لم تُبنَ بعد
+npm run lint
+```
 
 ## نقاط الـ API
 
