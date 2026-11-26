@@ -16,7 +16,8 @@ import { adminTicketRoutes, ticketRoutes } from './routes/tickets.js';
 import { errorHandler } from './middleware/error.js';
 import { allowedOrigins, requireTrustedOrigin } from './middleware/origin.js';
 
-export const createApp = () => {
+// throttleAuth is off in tests so suites can log in freely; a test turns it on to check the limiter.
+export const createApp = ({ throttleAuth = process.env.NODE_ENV !== 'test' } = {}) => {
   const app = express();
   app.use(helmet());
   // credentials: the session cookie travels with requests from the frontend.
@@ -26,8 +27,15 @@ export const createApp = () => {
 
   app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 
-  const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 50, standardHeaders: true, legacyHeaders: false });
-  app.use('/api/auth', process.env.NODE_ENV === 'test' ? [] : authLimiter, authRoutes);
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 50,
+    standardHeaders: true,
+    legacyHeaders: false,
+    // Same JSON shape as every other API error, so the frontend can translate it.
+    message: { error: 'Too many requests' },
+  });
+  app.use('/api/auth', throttleAuth ? authLimiter : [], authRoutes);
   // Before /api/admin: it has its own admin-only guard.
   app.use('/api/admin/tickets', adminTicketRoutes);
   app.use('/api/admin', adminRoutes);

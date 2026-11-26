@@ -60,12 +60,19 @@ router.get('/mine', requireRole('COMPANY'), async (req, res) => {
 });
 
 router.get('/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isSafeInteger(id) || id < 1) throw notFound('Opportunity');
   const opportunity = await prisma.opportunity.findUnique({
-    where: { id: Number(req.params.id) },
-    include: { company: companySummary },
+    where: { id },
+    include: { company: { select: { ...companySummary.select, verified: true, userId: true } } },
   });
-  if (!opportunity) throw notFound('Opportunity');
-  res.json(opportunity);
+  // Until an admin accepts the company, its opportunities look missing to everyone
+  // except the company itself and admins, the same as the list and the directory.
+  const visible = opportunity
+    && (opportunity.company.verified || req.user.role === 'ADMIN' || opportunity.company.userId === req.user.id);
+  if (!visible) throw notFound('Opportunity');
+  const { verified: _verified, userId: _userId, ...company } = opportunity.company;
+  res.json({ ...opportunity, company });
 });
 
 router.post('/', requireRole('COMPANY'), validate(opportunitySchema), async (req, res) => {

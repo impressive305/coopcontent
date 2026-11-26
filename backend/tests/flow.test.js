@@ -1,6 +1,8 @@
 import bcrypt from 'bcryptjs';
 import { signToken } from '../src/lib/auth.js';
-import { api, auth, createStaff, prisma, rawApi, resetDb, sessionOf } from './setup.js';
+import request from 'supertest';
+import { createApp } from '../src/app.js';
+import { ORIGIN, api, auth, createStaff, prisma, rawApi, resetDb, sessionOf } from './setup.js';
 
 const student = {
   name: 'Noura',
@@ -490,7 +492,15 @@ describe('company registration requests', () => {
 
     await api().patch(`/api/admin/companies/${companyId}/review`).set(auth(admin)).send({ status: 'APPROVED' });
     expect((await api().get('/api/companies').set(auth(s))).body).toHaveLength(1);
-    expect((await api().post('/api/opportunities').set(auth(c)).send(opportunity)).status).toBe(201);
+    const posted = await api().post('/api/opportunities').set(auth(c)).send(opportunity);
+    expect(posted.status).toBe(201);
+    const oppUrl = `/api/opportunities/${posted.body.id}`;
+    const seen = await api().get(oppUrl).set(auth(s));
+    expect(seen.status).toBe(200);
+    // Only the public summary: the review flag and the owner's user id stay server-side.
+    expect(Object.keys(seen.body.company).sort()).toEqual(['city', 'id', 'name', 'sector']);
+    expect((await api().get('/api/opportunities/abc').set(auth(s))).status).toBe(404);
+    expect((await api().get('/api/opportunities/99999').set(auth(s))).status).toBe(404);
     expect((await api().get('/api/admin/stats').set(auth(admin))).body.pendingCompanies).toBe(0);
 
     // Rejecting takes the company out of the directory and stops new posts.
@@ -498,5 +508,21 @@ describe('company registration requests', () => {
     expect(rejected.body).toMatchObject({ reviewStatus: 'REJECTED', verified: false });
     expect((await api().get('/api/companies').set(auth(s))).body).toEqual([]);
     expect((await api().post('/api/opportunities').set(auth(c)).send(opportunity)).status).toBe(403);
+
+    // Its existing opportunity is hidden by id too, except from the company itself and admins.
+    expect((await api().get(oppUrl).set(auth(s))).status).toBe(404);
+    expect((await api().get(oppUrl).set(auth(c))).status).toBe(200);
+    expect((await api().get(oppUrl).set(auth(admin))).status).toBe(200);
+  });
+});
+
+describe('auth rate limit', () => {
+  test('answers 429 with a JSON error the frontend can translate', async () => {
+    const throttled = createApp({ throttleAuth: true });
+    const hit = () => request(throttled).get('/api/auth/me').set('Origin', ORIGIN);
+    for (let i = 0; i < 50; i++) expect((await hit()).status).toBe(401);
+    const res = await hit();
+    expect(res.status).toBe(429);
+    expect(res.body).toEqual({ error: 'Too many requests' });
   });
 });
